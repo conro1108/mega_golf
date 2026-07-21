@@ -19,7 +19,7 @@ import {
   SINK_FRAMES,
 } from "./render/draw";
 import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
-import { drawMinimap, minimapHitTest, needsOverview, overviewZoom } from "./render/minimap";
+import { drawMinimap, minimapHitTest, overviewZoom } from "./render/minimap";
 import { HOLES } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
@@ -148,10 +148,11 @@ function loadHole(i: number): void {
   const best = loadBest(storage, hole.name);
   ghost = best ? { sim: createSim(hole), shots: best.shots, nextIndex: 0 } : null;
 
-  // Open on the overview for holes that don't fit, so the first thing you see
-  // is the whole thing. One tap and you're on the ball.
-  overview = needsOverview(hole);
-  zoom = targetZoom();
+  // A hole opens on the ball, ready to hit. The overview is on request only —
+  // the corner map carries the orientation, and forcing a peek every load
+  // taxes the retries far more than it helps the first look.
+  overview = false;
+  zoom = 1;
   updateCamera(true);
 }
 
