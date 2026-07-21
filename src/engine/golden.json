@@ -1,0 +1,602 @@
+[
+  {
+    "hole": "Warm Up",
+    "angle": -1.45,
+    "power": 130,
+    "x": 55.79552643576291,
+    "y": 208,
+    "steps": 142,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.45,
+    "power": 230,
+    "x": 83.40960131571181,
+    "y": 208,
+    "steps": 229,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.45,
+    "power": 330,
+    "x": 123.784261933054,
+    "y": 208,
+    "steps": 308,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.45,
+    "power": 430,
+    "x": 132.11702204520506,
+    "y": 208,
+    "steps": 387,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.15,
+    "power": 130,
+    "x": 96.92163836829856,
+    "y": 208,
+    "steps": 195,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.15,
+    "power": 230,
+    "x": 132.58348511400013,
+    "y": 208,
+    "steps": 284,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.15,
+    "power": 330,
+    "x": 32.74484357165305,
+    "y": 208,
+    "steps": 336,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -1.15,
+    "power": 430,
+    "x": 40,
+    "y": 200,
+    "steps": 355,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.85,
+    "power": 130,
+    "x": 123.36676732372256,
+    "y": 208,
+    "steps": 203,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.85,
+    "power": 230,
+    "x": 115.93011913626442,
+    "y": 208,
+    "steps": 302,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.85,
+    "power": 330,
+    "x": 57.113341413511854,
+    "y": 208,
+    "steps": 350,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.85,
+    "power": 430,
+    "x": 40,
+    "y": 200,
+    "steps": 204,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.55,
+    "power": 130,
+    "x": 135.44153215715906,
+    "y": 208,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.55,
+    "power": 230,
+    "x": 112.45859269013958,
+    "y": 208,
+    "steps": 301,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.55,
+    "power": 330,
+    "x": 86.0591304168017,
+    "y": 208,
+    "steps": 329,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.55,
+    "power": 430,
+    "x": 40,
+    "y": 200,
+    "steps": 159,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.25,
+    "power": 130,
+    "x": 134.1612706501783,
+    "y": 208,
+    "steps": 193,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.25,
+    "power": 230,
+    "x": 109.6978230424222,
+    "y": 208,
+    "steps": 310,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.25,
+    "power": 330,
+    "x": 424.4203941248835,
+    "y": 208,
+    "steps": 388,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Warm Up",
+    "angle": -0.25,
+    "power": 430,
+    "x": 40,
+    "y": 200,
+    "steps": 334,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.45,
+    "power": 130,
+    "x": 55.79552643576333,
+    "y": 208,
+    "steps": 142,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.45,
+    "power": 230,
+    "x": 83.40960131571183,
+    "y": 208,
+    "steps": 229,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.45,
+    "power": 330,
+    "x": 123.78426193305317,
+    "y": 208,
+    "steps": 308,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.45,
+    "power": 430,
+    "x": 178.23095853372033,
+    "y": 208,
+    "steps": 386,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.15,
+    "power": 130,
+    "x": 96.9216383682978,
+    "y": 208,
+    "steps": 195,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.15,
+    "power": 230,
+    "x": 183.27187746523092,
+    "y": 208,
+    "steps": 274,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.15,
+    "power": 330,
+    "x": 365.63833515599987,
+    "y": 227,
+    "steps": 398,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -1.15,
+    "power": 430,
+    "x": 357.4264438580402,
+    "y": 227,
+    "steps": 389,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.85,
+    "power": 130,
+    "x": 123.36676732372315,
+    "y": 208,
+    "steps": 203,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.85,
+    "power": 230,
+    "x": 257.48417321071895,
+    "y": 227,
+    "steps": 348,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.85,
+    "power": 330,
+    "x": 360.92942347381955,
+    "y": 227,
+    "steps": 334,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.85,
+    "power": 430,
+    "x": 277.23536917823594,
+    "y": 227,
+    "steps": 376,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.55,
+    "power": 130,
+    "x": 135.44153215715906,
+    "y": 208,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.55,
+    "power": 230,
+    "x": 282.10944141519235,
+    "y": 227,
+    "steps": 316,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.55,
+    "power": 330,
+    "x": 343.6630905034918,
+    "y": 227,
+    "steps": 308,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.55,
+    "power": 430,
+    "x": 273.8492028896276,
+    "y": 227,
+    "steps": 325,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.25,
+    "power": 130,
+    "x": 134.1612706501782,
+    "y": 208,
+    "steps": 193,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.25,
+    "power": 230,
+    "x": 259.5339948047509,
+    "y": 227,
+    "steps": 305,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.25,
+    "power": 330,
+    "x": 353.63864906553084,
+    "y": 227,
+    "steps": 285,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "The Beach",
+    "angle": -0.25,
+    "power": 430,
+    "x": 295.33363026275333,
+    "y": 227,
+    "steps": 290,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.45,
+    "power": 130,
+    "x": 55.79552643576291,
+    "y": 198,
+    "steps": 142,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.45,
+    "power": 230,
+    "x": 83.40960131571181,
+    "y": 198,
+    "steps": 229,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.45,
+    "power": 330,
+    "x": 123.784261933054,
+    "y": 198,
+    "steps": 308,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.45,
+    "power": 430,
+    "x": 178.23095853372288,
+    "y": 198,
+    "steps": 386,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.15,
+    "power": 130,
+    "x": 96.92163836829856,
+    "y": 198,
+    "steps": 195,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.15,
+    "power": 230,
+    "x": 183.271877465231,
+    "y": 198,
+    "steps": 274,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.15,
+    "power": 330,
+    "x": 40,
+    "y": 190,
+    "steps": 346,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -1.15,
+    "power": 430,
+    "x": 40,
+    "y": 190,
+    "steps": 2149,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.85,
+    "power": 130,
+    "x": 123.36676732372256,
+    "y": 198,
+    "steps": 203,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.85,
+    "power": 230,
+    "x": 245.15449510699239,
+    "y": 198,
+    "steps": 274,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.85,
+    "power": 330,
+    "x": 40,
+    "y": 190,
+    "steps": 222,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.85,
+    "power": 430,
+    "x": 40,
+    "y": 190,
+    "steps": 160,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.55,
+    "power": 130,
+    "x": 135.44153215715906,
+    "y": 198,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.55,
+    "power": 230,
+    "x": 257.8269988657565,
+    "y": 198,
+    "steps": 256,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.55,
+    "power": 330,
+    "x": 40,
+    "y": 190,
+    "steps": 183,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.55,
+    "power": 430,
+    "x": 40,
+    "y": 190,
+    "steps": 130,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.25,
+    "power": 130,
+    "x": 134.1612706501783,
+    "y": 198,
+    "steps": 193,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.25,
+    "power": 230,
+    "x": 247.317603623001,
+    "y": 198,
+    "steps": 241,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.25,
+    "power": 330,
+    "x": 40,
+    "y": 190,
+    "steps": 177,
+    "state": "resting",
+    "strokes": 2
+  },
+  {
+    "hole": "Cold Open",
+    "angle": -0.25,
+    "power": 430,
+    "x": 40,
+    "y": 190,
+    "steps": 148,
+    "state": "resting",
+    "strokes": 2
+  }
+]

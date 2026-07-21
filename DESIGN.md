@@ -1,4 +1,4 @@
-# mega_golf — design notes (draft)
+# mega_golf — design notes
 
 ## What the genre is
 

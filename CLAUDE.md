@@ -2,7 +2,7 @@
 
 mega_golf is a mobile-first pixel-art physics minigolf game (static, deployed
 on Vercel). Side-view, drag-to-aim slingshot, handmade holes. Every course ends
-in a **mega hole** — a sprawling multi-screen finale. `tmp_plan.md` is the
+in a **mega hole** — a sprawling multi-screen finale. `DESIGN.md` is the
 design source of truth.
 
 TypeScript + Vite, no framework. `src/engine/` is pure DOM-free simulation,
@@ -22,6 +22,11 @@ in whole `DT` steps; never scale a step by frame time.
 
 Record every shot from day one, even with no online layer — that data is the
 entire ghost-putt feature.
+
+`src/engine/golden.json` pins the exact outcome of a fixed shot matrix, so CI
+has to reproduce numbers generated on another machine. If it fails, the physics
+changed. Regenerate with `npm run golden:update` only when that was deliberate
+— and know that doing so invalidates every previously recorded shot.
 
 ## Git
 
