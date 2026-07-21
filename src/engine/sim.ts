@@ -9,7 +9,16 @@
  * natural exponential for exactly this reason.
  */
 
-import { buildEdges, DEFAULT_GRAVITY, MATERIALS, type Edge, type Hole, type Shot } from "./world";
+import {
+  buildEdges,
+  DEFAULT_GRAVITY,
+  MATERIALS,
+  pointInPolygon,
+  zoneAt,
+  type Edge,
+  type Hole,
+  type Shot,
+} from "./world";
 
 export const DT = 1 / 120;
 /** Side-view default. Per-hole gravity overrides this; top-down uses (0, 0). */
@@ -45,6 +54,8 @@ export interface Sim {
   safe: { x: number; y: number };
   restCounter: number;
   contact: boolean;
+  /** Sub-cups already banked this attempt, in `hole.checkpoints` order. */
+  checkpointsHit: boolean[];
 }
 
 export function createSim(hole: Hole): Sim {
@@ -58,6 +69,7 @@ export function createSim(hole: Hole): Sim {
     safe: { x: hole.start[0], y: hole.start[1] },
     restCounter: 0,
     contact: false,
+    checkpointsHit: new Array(hole.checkpoints?.length ?? 0).fill(false),
   };
 }
 
@@ -77,7 +89,13 @@ export function step(sim: Sim): void {
   if (sim.state !== "moving") return;
 
   const b = sim.ball;
-  const g = sim.hole.gravity ?? DEFAULT_GRAVITY;
+  // A zone overrides gravity/floor while the ball's centre sits inside it —
+  // this is the whole mechanism behind a hole switching perspective partway
+  // through. Looked up from the position at the start of the step, so the
+  // transition point is a fixed, replayable pixel rather than depending on
+  // sub-step order.
+  const zone = zoneAt(sim.hole, b.x, b.y);
+  const g = zone?.gravity ?? sim.hole.gravity ?? DEFAULT_GRAVITY;
   // Guarded so a zero-gravity hole performs no float op at all here, keeping
   // top-down bit-identical to a hand-written gravity-free integrator.
   if (g[0] !== 0) b.vx += g[0] * DT;
@@ -98,10 +116,12 @@ export function step(sim: Sim): void {
     resolveContacts(sim, sdt);
   }
 
-  // Top-down: the floor is everywhere, so its friction applies every step and
-  // the ball is permanently in contact (which is what lets it come to rest).
-  if (sim.hole.floor !== undefined) {
-    let decay = 1 - MATERIALS[sim.hole.floor].friction * DT;
+  // The floor (if any, here or from the zone) is everywhere within its
+  // region, so its friction applies every step and the ball is permanently
+  // in contact — which is what lets a top-down hole come to rest at all.
+  const floor = zone?.floor ?? sim.hole.floor;
+  if (floor !== undefined) {
+    let decay = 1 - MATERIALS[floor].friction * DT;
     if (decay < 0) decay = 0;
     b.vx = b.vx * decay;
     b.vy = b.vy * decay;
@@ -118,10 +138,14 @@ export function step(sim: Sim): void {
     sim.restCounter = 0;
   }
 
+  checkCheckpoints(sim);
+
   if (isInCup(sim)) {
     sim.state = "holed";
     return;
   }
+
+  if (hitHazard(sim)) return;
 
   if (outOfBounds(sim)) {
     // Water / void: stroke penalty, back to the last rest position.
@@ -135,6 +159,44 @@ export function step(sim: Sim): void {
   }
 
   if (sim.steps >= MAX_STEPS) settle(sim);
+}
+
+/** Sub-cups: banking the safe/reset position without ending the hole. */
+function checkCheckpoints(sim: Sim): void {
+  const checkpoints = sim.hole.checkpoints;
+  if (!checkpoints) return;
+  const b = sim.ball;
+  for (let i = 0; i < checkpoints.length; i++) {
+    if (sim.checkpointsHit[i]) continue;
+    const c = checkpoints[i];
+    const dx = b.x - c.x;
+    const dy = b.y - c.y;
+    if (dx * dx + dy * dy <= c.radius * c.radius) {
+      sim.checkpointsHit[i] = true;
+      sim.safe.x = c.x;
+      sim.safe.y = c.y;
+    }
+  }
+}
+
+/** Interior water/void: same stroke-penalty-and-reset as going out of bounds. */
+function hitHazard(sim: Sim): boolean {
+  const hazards = sim.hole.hazards;
+  if (!hazards) return false;
+  const b = sim.ball;
+  for (let i = 0; i < hazards.length; i++) {
+    const h = hazards[i];
+    if (pointInPolygon(b.x, b.y, h.points)) {
+      sim.strokes += h.penalty ?? 1;
+      b.x = sim.safe.x;
+      b.y = sim.safe.y;
+      b.vx = 0;
+      b.vy = 0;
+      settle(sim);
+      return true;
+    }
+  }
+  return false;
 }
 
 function settle(sim: Sim): void {

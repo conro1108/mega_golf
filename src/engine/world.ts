@@ -28,6 +28,40 @@ export interface Terrain {
   material: MaterialId;
 }
 
+/**
+ * A region that overrides gravity and/or floor material while the ball's
+ * centre is inside it. This is how one hole can *change* perspective
+ * partway through (the mega hole's whole trick): the hole-level gravity/floor
+ * are just the default zone. Checked in array order, first match wins, so
+ * authoring order doubles as z-order for overlapping zones.
+ */
+export interface Zone {
+  /** Closed polygon; interior test only, never a collider. */
+  points: readonly (readonly [number, number])[];
+  gravity?: readonly [number, number];
+  floor?: MaterialId;
+}
+
+/** A sub-cup: banks the ball's rest/reset position without ending the hole. */
+export interface Checkpoint {
+  x: number;
+  y: number;
+  radius: number;
+}
+
+/**
+ * An interior water/void region. Unlike terrain, this isn't a collider — the
+ * ball passes through unobstructed until its centre enters, at which point
+ * it's treated like going out of bounds: a stroke penalty and a reset to the
+ * last safe position. Use this for a hazard that sits mid-fairway rather than
+ * at the world edge.
+ */
+export interface Hazard {
+  points: readonly (readonly [number, number])[];
+  /** Strokes charged on entry. Defaults to 1. */
+  penalty?: number;
+}
+
 export interface Hole {
   name: string;
   /** The one idea this hole teaches. If you can't name it, cut the hole. */
@@ -49,12 +83,43 @@ export interface Hole {
   gravity?: readonly [number, number];
   /** Set for top-down holes: the surface the ball rolls across everywhere. */
   floor?: MaterialId;
+  /** Regions that override gravity/floor locally. See `Zone`. */
+  zones?: readonly Zone[];
+  checkpoints?: readonly Checkpoint[];
+  hazards?: readonly Hazard[];
 }
 
 export const DEFAULT_GRAVITY: readonly [number, number] = [0, 620];
 
+/** Ray-casting point-in-polygon test. Pure comparisons and division: exact. */
+export function pointInPolygon(px: number, py: number, points: readonly (readonly [number, number])[]): boolean {
+  let inside = false;
+  const n = points.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = points[i][0];
+    const yi = points[i][1];
+    const xj = points[j][0];
+    const yj = points[j][1];
+    const crosses = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+/** The zone (if any) whose interior contains this point, in authoring order. */
+export function zoneAt(hole: Hole, x: number, y: number): Zone | undefined {
+  if (!hole.zones) return undefined;
+  for (let i = 0; i < hole.zones.length; i++) {
+    if (pointInPolygon(x, y, hole.zones[i].points)) return hole.zones[i];
+  }
+  return undefined;
+}
+
+/** A hole is top-down if the cup sits under a floor, whether hole-wide or a local zone. */
 export function isTopDown(hole: Hole): boolean {
-  return hole.floor !== undefined;
+  if (hole.floor !== undefined) return true;
+  const z = zoneAt(hole, hole.cup[0], hole.cup[1]);
+  return z?.floor !== undefined;
 }
 
 /** A recorded shot. This is the entire payload a ghost putt needs. */

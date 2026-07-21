@@ -227,10 +227,23 @@ describe("world", () => {
   });
 
   it("gives every authored hole a stated idea and a sane par", () => {
+    // Every hole but the last (the mega hole, DESIGN.md's stated par-8+
+    // exception) stays within normal minigolf range.
+    const regular = HOLES.slice(0, -1);
+    const mega = HOLES[HOLES.length - 1];
     for (const h of HOLES) {
       expect(h.idea.length).toBeGreaterThan(0);
-      expect(h.par).toBeGreaterThanOrEqual(2);
-      expect(h.par).toBeLessThanOrEqual(5);
     }
+    for (const h of regular) {
+      expect(h.par).toBeGreaterThanOrEqual(2);
+      expect(h.par).toBeLessThanOrEqual(6);
+    }
+    expect(mega.par).toBeGreaterThanOrEqual(8);
+  });
+
+  it("ends the course on the mega hole", () => {
+    const mega = HOLES[HOLES.length - 1];
+    expect(mega.checkpoints?.length ?? 0).toBeGreaterThan(0);
+    expect(mega.zones?.length ?? 0).toBeGreaterThan(0);
   });
 });

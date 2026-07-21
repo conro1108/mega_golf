@@ -1,0 +1,156 @@
+/**
+ * Back nine: same materials and both perspectives, harder combinations —
+ * longer holes, tighter windows, hazards stacked together. Hole 17
+ * rehearses the mega hole's perspective-switch trick at a third of the
+ * scale, so hole 18 lands as an escalation rather than a surprise.
+ */
+
+import type { Hole } from "../engine/world";
+
+const GROUND: Hole["terrain"][number]["material"] = "green";
+
+export const BACK_NINE: Hole[] = [
+  {
+    name: "Needle's Eye",
+    idea: "A narrow window between a post and an overhang is the only way through — thread it or bounce back.",
+    par: 4,
+    width: 700,
+    height: 270,
+    start: [40, 200],
+    cup: [660, 208],
+    terrain: [
+      { material: GROUND, points: [[0, 211], [700, 211], [700, 270], [0, 270]] },
+      { material: "rubber", points: [[340, 211], [366, 211], [366, 150], [340, 150]] },
+      { material: "rubber", points: [[300, 90], [420, 90], [420, 104], [300, 104]] },
+      { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
+      { material: "rubber", points: [[700, 0], [708, 0], [708, 270], [700, 270]] },
+    ],
+  },
+  {
+    name: "Water Hazard",
+    idea: "Carry the pond in one committed swing, or lay up short of the bank for a cleaner look next try.",
+    par: 4,
+    width: 760,
+    height: 270,
+    start: [40, 200],
+    cup: [720, 208],
+    terrain: [
+      { material: GROUND, points: [[0, 211], [300, 211], [300, 270], [0, 270]] },
+      { material: GROUND, points: [[500, 211], [760, 211], [760, 270], [500, 270]] },
+      { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
+      { material: "rubber", points: [[760, 0], [768, 0], [768, 270], [760, 270]] },
+    ],
+    hazards: [{ points: [[300, 211], [500, 211], [500, 305], [300, 305]] }],
+  },
+  {
+    name: "Crosscut",
+    idea: "Ice on one crossing, sand on the other, and a peg splitting the room — the fast line and the controlled line can't both be yours.",
+    par: 4,
+    width: 500,
+    height: 320,
+    gravity: [0, 0],
+    floor: "green",
+    start: [40, 40],
+    cup: [460, 280],
+    terrain: [
+      { material: "rubber", points: [[0, 0], [500, 0], [500, 8], [0, 8]] },
+      { material: "rubber", points: [[0, 312], [500, 312], [500, 320], [0, 320]] },
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 320], [0, 320]] },
+      { material: "rubber", points: [[492, 0], [500, 0], [500, 320], [492, 320]] },
+      { material: "rubber", points: [[230, 150], [270, 150], [270, 190], [230, 190]] },
+    ],
+    zones: [
+      { points: [[40, 40], [460, 40], [460, 140], [40, 140]], floor: "ice" },
+      { points: [[40, 180], [460, 180], [460, 280], [40, 280]], floor: "sand" },
+    ],
+  },
+  {
+    name: "The Maze",
+    idea: "No physics trick here, just the layout — read the whole maze before you commit to a bank, because the walls don't forgive a wrong turn.",
+    par: 6,
+    width: 340,
+    height: 340,
+    gravity: [0, 0],
+    floor: "green",
+    start: [40, 40],
+    cup: [300, 300],
+    terrain: [
+      { material: "rubber", points: [[0, 0], [340, 0], [340, 8], [0, 8]] },
+      { material: "rubber", points: [[0, 332], [340, 332], [340, 340], [0, 340]] },
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 340], [0, 340]] },
+      { material: "rubber", points: [[332, 0], [340, 0], [340, 340], [332, 340]] },
+      { material: "rubber", points: [[8, 110], [230, 110], [230, 126], [8, 126]] },
+      { material: "rubber", points: [[110, 210], [332, 210], [332, 226], [110, 226]] },
+    ],
+  },
+  {
+    name: "High Dive",
+    idea: "A sheer vertical drop — trust the sand at the bottom to kill your fall speed, and stay off the bumpers or you'll ricochet wide.",
+    par: 4,
+    width: 300,
+    height: 700,
+    start: [150, 30],
+    cup: [150, 647],
+    terrain: [
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 700], [0, 700]] },
+      { material: "rubber", points: [[292, 0], [300, 0], [300, 700], [292, 700]] },
+      { material: "rubber", points: [[8, 200], [40, 200], [40, 220], [8, 220]] },
+      { material: "rubber", points: [[260, 350], [292, 350], [292, 370], [260, 370]] },
+      { material: "rubber", points: [[8, 500], [40, 500], [40, 520], [8, 520]] },
+      { material: "sand", points: [[8, 650], [292, 650], [292, 700], [8, 700]] },
+    ],
+  },
+  {
+    name: "The Squeeze",
+    idea: "A ceiling low enough to bonk a lofted shot back at you — stay flat through it, and flat means less speed to fight the sand just past it.",
+    par: 4,
+    width: 640,
+    height: 270,
+    start: [40, 200],
+    cup: [600, 208],
+    terrain: [
+      { material: GROUND, points: [[0, 211], [640, 211], [640, 270], [0, 270]] },
+      { material: "rubber", points: [[200, 140], [400, 140], [400, 160], [200, 160]] },
+      { material: "sand", points: [[400, 211], [500, 211], [500, 270], [400, 270]] },
+      { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
+      { material: "rubber", points: [[640, 0], [648, 0], [648, 270], [640, 270]] },
+    ],
+  },
+  {
+    name: "Spin Trap",
+    idea: "The cup sits behind a corner with no straight line to it from anywhere in the room — plan two banks, not one.",
+    par: 5,
+    width: 420,
+    height: 420,
+    gravity: [0, 0],
+    floor: "green",
+    start: [50, 50],
+    cup: [370, 370],
+    terrain: [
+      { material: "rubber", points: [[0, 0], [420, 0], [420, 8], [0, 8]] },
+      { material: "rubber", points: [[0, 412], [420, 412], [420, 420], [0, 420]] },
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 420], [0, 420]] },
+      { material: "rubber", points: [[412, 0], [420, 0], [420, 420], [412, 420]] },
+      { material: "rubber", points: [[260, 200], [276, 200], [276, 412], [260, 412]] },
+      { material: "rubber", points: [[260, 200], [370, 200], [370, 216], [260, 216]] },
+    ],
+  },
+  {
+    name: "Last Call",
+    idea: "One last side-view drop, but this time it doesn't end there — the floor at the bottom turns the fall into a roll, the same trick the finale runs at full scale.",
+    par: 5,
+    width: 500,
+    height: 500,
+    start: [40, 30],
+    cup: [440, 460],
+    terrain: [
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 500], [0, 500]] },
+      { material: "rubber", points: [[492, 0], [500, 0], [500, 500], [492, 500]] },
+      { material: "rubber", points: [[8, 120], [60, 120], [60, 136], [8, 136]] },
+      { material: "rubber", points: [[440, 220], [492, 220], [492, 236], [440, 236]] },
+      { material: "rubber", points: [[8, 492], [492, 492], [492, 500], [8, 500]] },
+    ],
+    zones: [{ points: [[8, 300], [492, 300], [492, 492], [8, 492]], gravity: [0, 0], floor: "green" }],
+    checkpoints: [{ x: 150, y: 320, radius: 45 }],
+  },
+];
