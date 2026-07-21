@@ -344,7 +344,12 @@ function frame(now: number): void {
       topDown: isTopDown(sim.hole),
     });
   } else if (state === "title") {
-    drawTitle(ctx, { holes: HOLES, bestStrokes: bestStrokesCache, furthestUnplayed: firstUnplayedIndex() });
+    drawTitle(ctx, {
+      holes: HOLES,
+      bestStrokes: bestStrokesCache,
+      furthestUnplayed: firstUnplayedIndex(),
+      time: now / 1000,
+    });
   } else {
     drawScorecard(ctx, { holes: HOLES, strokes: roundStrokes });
   }

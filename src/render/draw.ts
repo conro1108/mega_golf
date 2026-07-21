@@ -467,83 +467,233 @@ export function drawHud(
  * lays out a wide landscape screen and a narrow portrait one. Shared by
  * `drawTitle` and `titleHitTest` — they used to carry duplicate magic numbers,
  * which is exactly the sort of thing that silently drifts once it can change.
+ *
+ * The block is centred in the space above the horizon rather than pinned to
+ * fixed offsets from the top: on a tall phone that left the bottom 45% of the
+ * screen as dead black, which is what made the entry screen read as unfinished.
  */
-function titleLayout(): {
+export interface TitleLayout {
+  titleY: number;
+  subY: number;
+  barX: number;
+  barY: number;
+  barW: number;
+  barH: number;
   playX: number;
   playY: number;
   playW: number;
   playH: number;
+  pickY: number;
   cols: number;
+  rows: number;
   cellW: number;
   cellH: number;
   gridTop: number;
   gridLeft: number;
-} {
-  const playW = Math.min(140, VIEW.w - 40);
+  /** Top of the scenery band along the bottom edge. */
+  horizonY: number;
+}
+
+const TITLE_BLOCK = 40;
+const BAR_BLOCK = 22;
+const PLAY_BLOCK = 34;
+const PICK_BLOCK = 18;
+
+export function titleLayout(holeCount: number): TitleLayout {
+  const playW = Math.min(160, VIEW.w - 40);
   const playH = 26;
   // Fewer, narrower columns as the screen narrows; a 6-wide grid needs ~440px.
   const cols = VIEW.w >= 420 ? 6 : VIEW.w >= 300 ? 4 : 3;
-  const cellW = Math.min(74, Math.floor((VIEW.w - 12) / cols));
+  const cellW = Math.min(78, Math.floor((VIEW.w - 12) / cols));
+  const cellH = 28;
+  const rows = Math.ceil(holeCount / cols);
+
+  const horizonY = Math.round(VIEW.h - Math.min(104, VIEW.h * 0.22));
+  const contentH = TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK + rows * cellH;
+  const top = Math.max(6, Math.round((horizonY - contentH) / 2));
+
+  const barW = playW;
   return {
+    titleY: top,
+    subY: top + 24,
+    barX: Math.round(VIEW.w / 2 - barW / 2),
+    barY: top + TITLE_BLOCK,
+    barW,
+    barH: 4,
     playX: Math.round(VIEW.w / 2 - playW / 2),
-    playY: 48,
+    playY: top + TITLE_BLOCK + BAR_BLOCK,
     playW,
     playH,
+    pickY: top + TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK,
     cols,
+    rows,
     cellW,
-    cellH: 26,
-    gridTop: 96,
+    cellH,
+    gridTop: top + TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK,
     gridLeft: Math.round(VIEW.w / 2 - (cols * cellW) / 2),
+    horizonY,
   };
 }
 
-/** Title screen: game name, a play button, and a jump-to-any-hole grid. */
+/** The cell a hole occupies in the select grid. Exported so tests can aim at one. */
+export function titleCellRect(
+  i: number,
+  holeCount: number,
+): { x: number; y: number; w: number; h: number } {
+  const { cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount);
+  return {
+    x: gridLeft + (i % cols) * cellW,
+    y: gridTop + Math.floor(i / cols) * cellH,
+    w: cellW,
+    h: cellH,
+  };
+}
+
+/**
+ * The bottom of the title screen: layered hills, a flag, a ball waiting on the
+ * tee. Purely decorative, and drawn from the same palette the holes use so the
+ * menu looks like it belongs to the game rather than in front of it.
+ */
+function drawScenery(ctx: CanvasRenderingContext2D, horizonY: number, time: number): void {
+  const layers = [
+    { fill: "#241f38", top: "#2f2848", base: horizonY + 6, amp: 9, freq: 0.021, phase: 0.6 },
+    { fill: "#28503a", top: "#2f5f42", base: horizonY + 26, amp: 12, freq: 0.014, phase: 2.1 },
+    { fill: "#3f7d46", top: "#63b061", base: horizonY + 52, amp: 8, freq: 0.026, phase: 4.3 },
+  ];
+
+  for (const l of layers) {
+    ctx.beginPath();
+    ctx.moveTo(0, VIEW.h);
+    for (let x = 0; x <= VIEW.w; x += 4) {
+      ctx.lineTo(x, l.base + Math.sin(x * l.freq + l.phase) * l.amp);
+    }
+    ctx.lineTo(VIEW.w, VIEW.h);
+    ctx.closePath();
+    ctx.fillStyle = l.fill;
+    ctx.fill();
+    ctx.strokeStyle = l.top;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Flag on the middle ridge, pennant breathing on a slow sine — the one
+  // moving thing on an otherwise still screen, which is what sells it as alive.
+  const mid = layers[1];
+  const fx = Math.round(VIEW.w * 0.76);
+  const fy = mid.base + Math.sin(fx * mid.freq + mid.phase) * mid.amp;
+  ctx.fillStyle = "#e8e4f0";
+  ctx.fillRect(fx - 1, fy - 30, 2, 30);
+  const wave = Math.sin(time * 2.2) * 2;
+  ctx.fillStyle = "#f2d24b";
+  ctx.beginPath();
+  ctx.moveTo(fx + 1, fy - 30);
+  ctx.quadraticCurveTo(fx + 9, fy - 27 + wave, fx + 16, fy - 25);
+  ctx.lineTo(fx + 1, fy - 20);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ball, teed up on the near ridge.
+  const near = layers[2];
+  const bx = Math.round(VIEW.w * 0.2);
+  const by = near.base + Math.sin(bx * near.freq + near.phase) * near.amp;
+  ctx.fillStyle = "rgba(11, 9, 18, 0.35)";
+  ctx.beginPath();
+  ctx.ellipse(bx, by, 4, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(bx, by - 3, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Title screen: game name, progress, a play button, and a jump-to-any-hole grid. */
 export function drawTitle(
   ctx: CanvasRenderingContext2D,
-  opts: { holes: Hole[]; bestStrokes: (number | null)[]; furthestUnplayed: number },
+  opts: {
+    holes: Hole[];
+    bestStrokes: (number | null)[];
+    furthestUnplayed: number;
+    /** Seconds since load; drives the flag. Cosmetic — nothing here is simulated. */
+    time?: number;
+  },
 ): void {
-  ctx.fillStyle = "#171326";
+  const L = titleLayout(opts.holes.length);
+
+  // Sky: a shallow gradient rather than a flat fill, so the screen has a top
+  // and a bottom instead of being one uniform slab.
+  const sky = ctx.createLinearGradient(0, 0, 0, L.horizonY + 40);
+  sky.addColorStop(0, "#1e1840");
+  sky.addColorStop(1, "#171326");
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+  drawScenery(ctx, L.horizonY, opts.time ?? 0);
 
   ctx.textAlign = "center";
-  ctx.fillStyle = "#f2d24b";
-  ctx.font = "22px monospace";
   ctx.textBaseline = "top";
-  ctx.fillText("MEGA GOLF", VIEW.w / 2, 10);
+
+  // Wordmark, with a hard offset shadow for a little weight. The shadow is
+  // near-black rather than a second hue: an offset pink copy reads as a
+  // printing misregistration, not as depth.
+  ctx.font = "24px monospace";
+  ctx.fillStyle = "rgba(11, 9, 18, 0.55)";
+  ctx.fillText("MEGA GOLF", VIEW.w / 2 + 2, L.titleY + 2);
+  ctx.fillStyle = "#f2d24b";
+  ctx.fillText("MEGA GOLF", VIEW.w / 2, L.titleY);
   ctx.font = "9px monospace";
   ctx.fillStyle = "#9d94b8";
-  ctx.fillText(`${opts.holes.length - 1} holes, then the mega hole`, VIEW.w / 2, 34);
+  ctx.fillText(`${opts.holes.length - 1} holes, then the mega hole`, VIEW.w / 2, L.subY);
 
-  // Play button.
-  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout();
+  // Progress: how much of the course you've actually put away. Label sits
+  // above its own track — at 4 units tall the bar is a rule, and text sharing
+  // that line just looks struck through.
+  const done = opts.bestStrokes.reduce<number>((n, s) => n + (s !== null ? 1 : 0), 0);
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#5a5270";
+  ctx.fillText(`${done} of ${opts.holes.length} holes bested`, VIEW.w / 2, L.barY);
+  const trackY = L.barY + 10;
+  ctx.fillStyle = "#241f38";
+  ctx.fillRect(L.barX, trackY, L.barW, L.barH);
+  if (done > 0) {
+    ctx.fillStyle = "#63b061";
+    ctx.fillRect(L.barX, trackY, (L.barW * done) / opts.holes.length, L.barH);
+  }
+
+  // Play button: a lighter top edge reads as a raised face, which is most of
+  // what makes a flat rectangle look like something you press.
   ctx.fillStyle = "#3f7d46";
-  ctx.fillRect(playX, playY, playW, playH);
+  ctx.fillRect(L.playX, L.playY, L.playW, L.playH);
+  ctx.fillStyle = "#4c9455";
+  ctx.fillRect(L.playX, L.playY, L.playW, 3);
   ctx.strokeStyle = "#63b061";
   ctx.lineWidth = 2;
-  ctx.strokeRect(playX, playY, playW, playH);
+  ctx.strokeRect(L.playX, L.playY, L.playW, L.playH);
   ctx.fillStyle = "#ffffff";
   ctx.font = "14px monospace";
-  ctx.fillText(opts.furthestUnplayed > 0 ? "CONTINUE ROUND" : "PLAY ROUND", VIEW.w / 2, playY + 6);
+  ctx.fillText(opts.furthestUnplayed > 0 ? "CONTINUE ROUND" : "PLAY ROUND", VIEW.w / 2, L.playY + 7);
 
-  // Hole-select grid.
   ctx.font = "8px monospace";
-  ctx.fillStyle = "#9d94b8";
-  ctx.fillText("or pick a hole", VIEW.w / 2, 84);
+  ctx.fillStyle = "#5a5270";
+  ctx.fillText("— or pick a hole —", VIEW.w / 2, L.pickY + 4);
 
   opts.holes.forEach((hole, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = gridLeft + col * cellW;
-    const y = gridTop + row * cellH;
+    const { x, y, w, h } = titleCellRect(i, opts.holes.length);
     const isMega = i === opts.holes.length - 1;
-    ctx.fillStyle = isMega ? "#b8477f" : "#241f38";
-    ctx.fillRect(x + 2, y + 2, cellW - 4, cellH - 4);
+    const best = opts.bestStrokes[i];
+    const played = best !== null;
+
+    ctx.fillStyle = isMega ? "#8d2f60" : played ? "#2b3a3c" : "#241f38";
+    ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+    // A played hole carries a green edge, so progress is legible as a shape
+    // down the grid and not only as text you have to read cell by cell.
+    ctx.fillStyle = isMega ? "#b8477f" : played ? "#63b061" : "#332c4d";
+    ctx.fillRect(x + 2, y + 2, 2, h - 4);
+
     ctx.fillStyle = "#ffffff";
-    ctx.font = "9px monospace";
-    ctx.fillText(isMega ? "MEGA" : `${i + 1}`, x + cellW / 2, y + 5);
+    ctx.font = "10px monospace";
+    ctx.fillText(isMega ? "MEGA" : `${i + 1}`, x + w / 2, y + 5);
     ctx.font = "7px monospace";
-    ctx.fillStyle = opts.bestStrokes[i] !== null ? "#7de08a" : "#9d94b8";
-    ctx.fillText(opts.bestStrokes[i] !== null ? `best ${opts.bestStrokes[i]}` : `par ${hole.par}`, x + cellW / 2, y + 16);
+    ctx.fillStyle = played ? "#7de08a" : "#7a719a";
+    ctx.fillText(played ? `best ${best}` : `par ${hole.par}`, x + w / 2, y + 17);
   });
 
   ctx.textAlign = "left";
@@ -557,7 +707,7 @@ export function homeButtonHitTest(x: number, y: number): boolean {
 
 /** Hit-testing to match drawTitle's layout. Returns a hole index, or -1 for the play button, or null for no hit. */
 export function titleHitTest(x: number, y: number, holeCount: number): number | null {
-  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout();
+  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount);
   if (x >= playX && x <= playX + playW && y >= playY && y <= playY + playH) return -1;
 
   if (y < gridTop) return null;
