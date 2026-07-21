@@ -30,8 +30,10 @@ export interface BestRun {
  * a ghost that wanders off and never holes out.
  *
  * v2: contact material resolved by region, so bunkers stopped playing as green.
+ * v3: holes reshaped onto curved ground — same physics, different terrain,
+ *     which invalidates a recorded run just as thoroughly.
  */
-const BEST_PREFIX = "megagolf:best:v2:";
+const BEST_PREFIX = "megagolf:best:v3:";
 
 /** Storage key for a hole's best run. Exported so tests can't drift from it. */
 export function bestKey(holeName: string): string {

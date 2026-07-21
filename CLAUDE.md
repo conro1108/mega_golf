@@ -20,6 +20,10 @@ iteration over unordered collections. Friction uses linear decay for this
 reason — don't "fix" it to an exponential. The simulation only ever advances
 in whole `DT` steps; never scale a step by frame time.
 
+The same restriction covers hole *geometry*, not just `src/engine/`: terrain
+vertices are simulation input. Curves are authored through `src/holes/shape.ts`
+(a Catmull-Rom in plain arithmetic) — never a sine wave, however tempting.
+
 Record every shot from day one, even with no online layer — that data is the
 entire ghost-putt feature.
 

@@ -44,6 +44,61 @@ function settleInto(hole: Hole, x: number, surfaceY: number) {
   return sim;
 }
 
+/**
+ * Curved ground is authored by control points, and the shape of a curve
+ * decides where a ball ends up in a way a rectangle never did. These are the
+ * two properties that broke while building the rolling holes: a cup left
+ * floating above (or buried under) a surface whose height was guessed rather
+ * than derived, and a hole where every landing spot sloped into the water.
+ */
+describe("every hole", () => {
+  const cases = HOLES.map((h) => [h.name, h] as const);
+
+  /** Put a ball somewhere and let physics finish with it. */
+  function release(hole: Hole, x: number, y: number, steps = 6000) {
+    const sim = createSim(hole);
+    sim.ball = { x, y, vx: 0, vy: 0 };
+    sim.safe = { x, y };
+    sim.state = "moving";
+    let guard = 0;
+    while (sim.state === "moving" && guard++ < steps) step(sim);
+    return sim;
+  }
+
+  it.each(cases)("%s: the cup sits at rest height on real ground", (_name, hole) => {
+    // A ball placed exactly on the cup coordinate is a ball at rest in the
+    // cup — that's what the coordinate means (see draw.ts `mouthY`).
+    const sim = release(hole, hole.cup[0], hole.cup[1], 600);
+    expect(sim.state).toBe("holed");
+  });
+
+  it.each(cases)("%s: the tee is a lie you can play from", (_name, hole) => {
+    // No penalty before the player has even swung, it has to settle (a tee
+    // that trickles forever is a hole you can never take a shot on), and it
+    // must not simply fall in — High Dive's cup was briefly right below it.
+    const sim = release(hole, hole.start[0], hole.start[1]);
+    expect(sim.strokes).toBe(0);
+    expect(sim.state).toBe("resting");
+  });
+
+  it.each(cases.filter(([, h]) => h.floor === undefined))(
+    "%s: has ground that holds a ball across most of its width",
+    (_name, hole) => {
+      // Drop a ball down every part of the hole. Some columns are meant to be
+      // water, a shaft, or thin air — but if a side-view hole can barely hold
+      // a ball anywhere, its surfaces are all tipped into a hazard, which is
+      // exactly how the reshaped Water Hazard first came out.
+      let held = 0;
+      const columns = 24;
+      for (let i = 0; i < columns; i++) {
+        const sim = release(hole, ((i + 0.5) * hole.width) / columns, 2);
+        if (sim.state === "resting" && sim.strokes === 0) held += 1;
+      }
+      expect(held).toBeGreaterThan(columns * 0.4);
+    },
+  );
+});
+
 describe("bunkers", () => {
   const bunkers = sideViewBunkers();
 

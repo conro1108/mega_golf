@@ -6,8 +6,52 @@
  */
 
 import type { Hole } from "../engine/world";
+import { ridge, blob, thickCurve, restY, type Pt } from "./shape";
 
 const GROUND: Hole["terrain"][number]["material"] = "green";
+
+/**
+ * Water Hazard's two banks.
+ *
+ * Shape decides play here more than anything else on the course. The near bank
+ * is near-level so laying up short of the water actually holds; the far bank
+ * climbs out of the pond to a crest and only then settles, so a carry that
+ * clears the water stays cleared instead of trickling back down the slope it
+ * just landed on. An earlier version of these curves tipped both banks toward
+ * the pond, and the hole had exactly zero playable landing spots.
+ */
+const NEAR_BANK: Pt[] = [
+  [0, 210],
+  [80, 213],
+  [160, 214],
+  [240, 212],
+  [285, 209],
+  [300, 216],
+];
+const FAR_BANK: Pt[] = [
+  [500, 216],
+  [522, 203],
+  [548, 199],
+  [592, 207],
+  [650, 210],
+  [700, 211],
+  [760, 211],
+];
+
+/**
+ * High Dive's landing: a sand basin with two pockets and a rise between them.
+ * The cup is in the far pocket, so a ball that simply falls doesn't feed into
+ * it — a single dish centred under the tee made the hole score zero without
+ * anyone taking a shot.
+ */
+const BASIN: Pt[] = [
+  [8, 648],
+  [66, 676],
+  [130, 666],
+  [186, 650],
+  [244, 674],
+  [292, 662],
+];
 
 export const BACK_NINE: Hole[] = [
   {
@@ -32,15 +76,32 @@ export const BACK_NINE: Hole[] = [
     par: 4,
     width: 760,
     height: 270,
-    start: [40, 200],
-    cup: [720, 208],
+    start: [40, restY(NEAR_BANK, 40)],
+    cup: [720, restY(FAR_BANK, 720)],
     terrain: [
-      { material: GROUND, points: [[0, 211], [300, 211], [300, 270], [0, 270]] },
-      { material: GROUND, points: [[500, 211], [760, 211], [760, 270], [500, 270]] },
+      ridge(GROUND, NEAR_BANK, 270),
+      ridge(GROUND, FAR_BANK, 270),
       { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
       { material: "rubber", points: [[760, 0], [768, 0], [768, 270], [760, 270]] },
     ],
-    hazards: [{ points: [[300, 211], [500, 211], [500, 305], [300, 305]] }],
+    // The pond is a pool between the two banks, not a rectangle: it holds its
+    // own corners at the waterline (extra controls there) so the smoothing
+    // can't bulge it out over ground a ball is allowed to rest on.
+    hazards: [
+      {
+        points: blob([
+          [304, 216],
+          [340, 244],
+          [400, 252],
+          [460, 244],
+          [496, 216],
+          [496, 250],
+          [480, 296],
+          [320, 296],
+          [304, 250],
+        ]),
+      },
+    ],
   },
   {
     name: "Crosscut",
@@ -89,15 +150,17 @@ export const BACK_NINE: Hole[] = [
     par: 4,
     width: 300,
     height: 700,
-    start: [150, 30],
-    cup: [150, 647],
+    start: [66, 30],
+    cup: [244, restY(BASIN, 244)],
     terrain: [
       { material: "rubber", points: [[0, 0], [8, 0], [8, 700], [0, 700]] },
       { material: "rubber", points: [[292, 0], [300, 0], [300, 700], [292, 700]] },
       { material: "rubber", points: [[8, 200], [40, 200], [40, 220], [8, 220]] },
       { material: "rubber", points: [[260, 350], [292, 350], [292, 370], [260, 370]] },
       { material: "rubber", points: [[8, 500], [40, 500], [40, 520], [8, 520]] },
-      { material: "sand", points: [[8, 650], [292, 650], [292, 700], [8, 700]] },
+      // A dished basin rather than a flat sand floor: miss the middle and the
+      // slope feeds you back toward the cup instead of leaving you plugged.
+      ridge("sand", BASIN, 700),
     ],
   },
   {
@@ -149,6 +212,10 @@ export const BACK_NINE: Hole[] = [
       { material: "rubber", points: [[8, 120], [60, 120], [60, 136], [8, 136]] },
       { material: "rubber", points: [[440, 220], [492, 220], [492, 236], [440, 236]] },
       { material: "rubber", points: [[8, 492], [492, 492], [492, 500], [8, 500]] },
+      // Down on the floor, a curved rail across the room: the cup is past its
+      // right-hand end, so the roll out of the drop has to be steered, not
+      // just survived.
+      { material: "rubber", points: thickCurve([[110, 392], [240, 428], [370, 398]], 8) },
     ],
     zones: [{ points: [[8, 300], [492, 300], [492, 492], [8, 492]], gravity: [0, 0], floor: "green" }],
     checkpoints: [{ x: 150, y: 320, radius: 45 }],
