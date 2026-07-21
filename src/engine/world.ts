@@ -108,7 +108,14 @@ export interface Hole {
   hazards?: readonly Hazard[];
 }
 
-export const DEFAULT_GRAVITY: readonly [number, number] = [0, 620];
+/**
+ * Side-view gravity. Deliberately light: the game is skee-ball, not golf, so a
+ * launch should hang and arc across most of a hole rather than pitch and roll.
+ * At this value a max shot lobs ~105 units high and carries ~420, which is
+ * about one screen — holes are sized to one or two of those. Top-down holes
+ * set their own `[0, 0]` and are unaffected.
+ */
+export const DEFAULT_GRAVITY: readonly [number, number] = [0, 440];
 
 /** Ray-casting point-in-polygon test. Pure comparisons and division: exact. */
 export function pointInPolygon(px: number, py: number, points: readonly (readonly [number, number])[]): boolean {

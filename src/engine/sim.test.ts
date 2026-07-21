@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createSim, simulateShot, step, strike, DT, BALL_RADIUS } from "./sim";
 import { buildEdges, type Hole } from "./world";
-import { HOLES } from "../holes";
+import { ALL_HOLES as HOLES, COURSES } from "../holes";
 
 /**
  * A flat strip of the given material, surface at y=200. Deliberately absurdly
@@ -291,18 +291,20 @@ describe("world", () => {
   });
 
   it("gives every authored hole a stated idea and a sane par", () => {
-    // Every hole but the last (the mega hole, DESIGN.md's stated par-8+
-    // exception) stays within normal minigolf range.
-    const regular = HOLES.slice(0, -1);
-    const mega = HOLES[HOLES.length - 1];
+    // Par is checked per course: each course is nine normal holes plus its own
+    // mega finale, which is DESIGN.md's stated par-8+ exception.
     for (const h of HOLES) {
       expect(h.idea.length).toBeGreaterThan(0);
     }
-    for (const h of regular) {
-      expect(h.par).toBeGreaterThanOrEqual(2);
-      expect(h.par).toBeLessThanOrEqual(6);
+    for (const course of COURSES) {
+      const regular = course.holes.slice(0, -1);
+      const mega = course.holes[course.holes.length - 1];
+      for (const h of regular) {
+        expect(h.par, `${h.name} par`).toBeGreaterThanOrEqual(2);
+        expect(h.par, `${h.name} par`).toBeLessThanOrEqual(6);
+      }
+      expect(mega.par, `${mega.name} par`).toBeGreaterThanOrEqual(8);
     }
-    expect(mega.par).toBeGreaterThanOrEqual(8);
   });
 
   it("ends the course on the mega hole", () => {

@@ -7,7 +7,7 @@
  */
 
 import { createSim, strike, step, maxPowerForLie, DT, type Sim } from "./engine/sim";
-import { isTopDown, type Shot } from "./engine/world";
+import { isTopDown, type Hole, type Shot } from "./engine/world";
 import {
   draw,
   drawAim,
@@ -20,7 +20,7 @@ import {
 } from "./render/draw";
 import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
 import { drawMinimap, minimapHitTest, overviewZoom } from "./render/minimap";
-import { HOLES } from "./holes";
+import { COURSES, type Course } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
 const MAX_DRAG = 70;
@@ -46,9 +46,18 @@ const storage = getStorage();
 type GameState = "title" | "playing" | "scorecard";
 let state: GameState = "title";
 
+/**
+ * Which course you're in. Perspective belongs to the course, so this is also
+ * "which of the two games am I playing" — picked on the title screen and
+ * fixed for the whole round.
+ */
+let courseIndex = 0;
+const course = (): Course => COURSES[courseIndex];
+const holes = (): Hole[] => course().holes;
+
 let scale = 1;
 let holeIndex = 0;
-let sim: Sim = createSim(HOLES[holeIndex]);
+let sim: Sim = createSim(holes()[holeIndex]);
 let camX = 0;
 let camY = 0;
 
@@ -72,9 +81,18 @@ let resultRecorded = false;
 /** Frames since the ball was holed, driving the drop-into-the-cup animation. */
 let holedFrames = 0;
 
-/** This session's official scorecard — first completion per hole, per DESIGN.md. */
-const roundStrokes: (number | null)[] = HOLES.map(() => null);
-let bestStrokesCache: (number | null)[] = HOLES.map((h) => loadBest(storage, h.name)?.strokes ?? null);
+/**
+ * This session's official scorecard — first completion per hole, per
+ * DESIGN.md — kept per course, so playing a few top-down holes doesn't
+ * disturb a side-view round in progress.
+ */
+const roundStrokes: (number | null)[][] = COURSES.map((c) => c.holes.map(() => null));
+let bestStrokesCache: (number | null)[] = [];
+
+function refreshBests(): void {
+  bestStrokesCache = holes().map((h) => loadBest(storage, h.name)?.strokes ?? null);
+}
+refreshBests();
 
 let dragging = false;
 let dragStart = { x: 0, y: 0 };
@@ -133,13 +151,14 @@ function resize(): void {
 }
 
 function firstUnplayedIndex(): number {
-  const i = roundStrokes.findIndex((s) => s === null);
+  const i = roundStrokes[courseIndex].findIndex((s) => s === null);
   return i === -1 ? 0 : i;
 }
 
 function loadHole(i: number): void {
-  holeIndex = ((i % HOLES.length) + HOLES.length) % HOLES.length;
-  const hole = HOLES[holeIndex];
+  const n = holes().length;
+  holeIndex = ((i % n) + n) % n;
+  const hole = holes()[holeIndex];
   sim = createSim(hole);
   attemptShots = [];
   resultRecorded = false;
@@ -170,10 +189,11 @@ function roundToPar(): number | null {
   let strokes = 0;
   let par = 0;
   let any = false;
-  for (let i = 0; i < HOLES.length; i++) {
-    if (roundStrokes[i] === null) continue;
-    strokes += roundStrokes[i]!;
-    par += HOLES[i].par;
+  const scores = roundStrokes[courseIndex];
+  for (let i = 0; i < holes().length; i++) {
+    if (scores[i] === null) continue;
+    strokes += scores[i]!;
+    par += holes()[i].par;
     any = true;
   }
   return any ? strokes - par : null;
@@ -205,20 +225,23 @@ canvas.addEventListener("pointerdown", (e) => {
   const py = (e.clientY - rect.top) / scale;
 
   if (state === "title") {
-    const hit = titleHitTest(px, py, HOLES.length);
-    if (hit === -1) {
-      loadHole(firstUnplayedIndex());
-      state = "playing";
-    } else if (hit !== null) {
-      loadHole(hit);
-      state = "playing";
+    const hit = titleHitTest(px, py, holes().length);
+    if (hit === null) return;
+    if (hit.kind === "course") {
+      // Switching course re-reads bests and re-anchors the grid; the round in
+      // progress on the other course is kept, not cleared.
+      courseIndex = hit.index;
+      refreshBests();
+      return;
     }
+    loadHole(hit.kind === "play" ? firstUnplayedIndex() : hit.index);
+    state = "playing";
     return;
   }
 
   if (state === "scorecard") {
     state = "title";
-    bestStrokesCache = HOLES.map((h) => loadBest(storage, h.name)?.strokes ?? null);
+    refreshBests();
     return;
   }
 
@@ -236,11 +259,11 @@ canvas.addEventListener("pointerdown", (e) => {
   }
   if (homeButtonHitTest(px, py)) {
     state = "title";
-    bestStrokesCache = HOLES.map((h) => loadBest(storage, h.name)?.strokes ?? null);
+    refreshBests();
     return;
   }
   if (sim.state === "holed") {
-    if (holeIndex === HOLES.length - 1) {
+    if (holeIndex === holes().length - 1) {
       state = "scorecard";
     } else {
       loadHole(holeIndex + 1);
@@ -320,7 +343,7 @@ function frame(now: number): void {
 
     if (sim.state === "holed" && !resultRecorded) {
       resultRecorded = true;
-      if (roundStrokes[holeIndex] === null) roundStrokes[holeIndex] = sim.strokes;
+      if (roundStrokes[courseIndex][holeIndex] === null) roundStrokes[courseIndex][holeIndex] = sim.strokes;
       lastIsNewBest = saveBestIfBetter(storage, sim.hole.name, { strokes: sim.strokes, shots: attemptShots });
       if (lastIsNewBest) bestStrokesCache[holeIndex] = sim.strokes;
     }
@@ -338,20 +361,22 @@ function frame(now: number): void {
       strokes: sim.strokes,
       holed: sim.state === "holed",
       holeNumber: holeIndex + 1,
-      holeCount: HOLES.length,
+      holeCount: holes().length,
       roundToPar: roundToPar(),
       isNewBest: lastIsNewBest,
       topDown: isTopDown(sim.hole),
     });
   } else if (state === "title") {
     drawTitle(ctx, {
-      holes: HOLES,
+      courses: COURSES,
+      courseIndex,
+      holes: holes(),
       bestStrokes: bestStrokesCache,
       furthestUnplayed: firstUnplayedIndex(),
       time: now / 1000,
     });
   } else {
-    drawScorecard(ctx, { holes: HOLES, strokes: roundStrokes });
+    drawScorecard(ctx, { course: course(), strokes: roundStrokes[courseIndex] });
   }
 
   requestAnimationFrame(frame);

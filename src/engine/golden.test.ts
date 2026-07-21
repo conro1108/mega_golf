@@ -25,7 +25,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createSim, simulateShot } from "./sim";
 import type { Shot } from "./world";
-import { HOLES } from "../holes";
+import { ALL_HOLES as HOLES } from "../holes";
 
 const FIXTURE = fileURLToPath(new URL("./golden.json", import.meta.url));
 

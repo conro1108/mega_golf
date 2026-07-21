@@ -32,8 +32,10 @@ export interface BestRun {
  * v2: contact material resolved by region, so bunkers stopped playing as green.
  * v3: holes reshaped onto curved ground — same physics, different terrain,
  *     which invalidates a recorded run just as thoroughly.
+ * v4: side-view gravity lightened for skee-ball arcs, and the courses split by
+ *     perspective, which rebuilt nearly every hole.
  */
-const BEST_PREFIX = "megagolf:best:v3:";
+const BEST_PREFIX = "megagolf:best:v4:";
 
 /** Storage key for a hole's best run. Exported so tests can't drift from it. */
 export function bestKey(holeName: string): string {

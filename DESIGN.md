@@ -33,15 +33,28 @@ things downstream (physics, art, hole authoring, progression) follow from it.
 
 ## Two perspectives
 
-The game contains **both** side-view and top-down holes, blended as a course
-progresses. They are two dialects of the same verb, not two games.
+The game contains **both** side-view and top-down holes — but they are
+separated into **two courses you pick between on the title screen**, not
+blended within one round. They remain two dialects of the same verb; what
+changed is that you choose the dialect up front and stay in it.
 
-- **Side-view** — gravity is the antagonist. Skill is reading arcs, slopes,
-  and launch height. Terrain reads as a silhouette. Easiest to understand at
-  a glance, so it teaches first.
-- **Top-down** — gravity is gone; the floor holds the ball. Skill is banks,
-  angles, and routing around hazards. The hole is a layout you read like a
-  map. Slower, more deliberate, more "puzzle" than "throw".
+> Revised after play-testing. The original plan alternated perspectives as a
+> course progressed, and the finale switched lens mid-hole. In practice that
+> read as *confusing* rather than as variety — you spend the first beat of
+> every hole working out which game you're in. Perspective is now a property
+> of a **course**. Both are on the front page, so nothing is hidden; the
+> variety just lives one level up.
+
+- **Side-view — "launch it."** Explicitly *skee-ball, not golf*. A tee pad, a
+  gap of open air, a landing. The ball lives in an **arc**, not a roll, and
+  holes end in a drop-in **pocket** whose lip rejects a ball arriving along
+  the ground — the shot has to come down out of the air. Gravity is light
+  (~440) so a max launch hangs and carries about a screen, and holes are
+  sized to one or two arcs. Undershoot and the ball drops into the gap and is
+  handed back to you.
+- **Top-down — "bank it."** Gravity is gone; the floor holds the ball. Skill
+  is banks, angles, and routing around hazards. The hole is a layout you read
+  like a map. Slower, more deliberate, more "puzzle" than "throw".
 
 ### What stays identical
 
@@ -66,18 +79,20 @@ wrong, not that the input needs a mode.
 
 ### Progression
 
-A course opens side-view, introduces top-down around the middle, and
-alternates late. Difficulty climbs on two axes at once: within a perspective
-(harder geometry, meaner materials) and across them (the switch itself costs
-the player a beat of re-reading). Late holes can put a top-down section and a
-side-view section in the same *course* back to back deliberately.
+Each course is **nine holes plus its own mega finale**, and difficulty climbs
+within its single perspective — harder geometry, meaner materials, tighter
+windows. No hole ever switches lens on you.
 
-The **mega hole** transitions perspective at a checkpoint cup partway
-through, so the finale is literally both games in one ride. This is the
-payoff the whole blend is building toward and the single best thing to show
-someone — the sub-cup that hands you off from a side-view descent into a
-top-down maze is the screenshot. Prototype the handoff early; the sim already
-supports it, since perspective is just gravity plus a floor material.
+Each course's **mega hole** is a sprawling finale *in that course's own
+perspective*, with sub-cups partway that bank your progress. The side-view
+one is a long chain of launches across every surface; the top-down one is a
+serpentine floor of banks and blind corners. The old cross-perspective
+handoff is gone with the blending that motivated it.
+
+One deliberate exception per course keeps the vocabulary honest rather than
+mechanical: the side course's **The Squeeze** is the hole with a ceiling too
+low to arc under, so it's the one that forbids the launch and asks for a flat
+drive into a cup sitting on the deck.
 
 ### Engine implication
 

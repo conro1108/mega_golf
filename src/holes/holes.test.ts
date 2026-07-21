@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { createSim, simulateShot, step, maxPowerForLie, BALL_RADIUS } from "../engine/sim";
 import { pointInPolygon, type Hole } from "../engine/world";
-import { HOLES } from "../holes";
+import { ALL_HOLES as HOLES } from "../holes";
 
 /** Every side-view sand patch in the course, as (hole, polygon) pairs. */
 function sideViewBunkers(): { hole: Hole; points: readonly (readonly [number, number])[] }[] {
@@ -82,19 +82,21 @@ describe("every hole", () => {
   });
 
   it.each(cases.filter(([, h]) => h.floor === undefined))(
-    "%s: has ground that holds a ball across most of its width",
+    "%s: has somewhere to actually land",
     (_name, hole) => {
-      // Drop a ball down every part of the hole. Some columns are meant to be
-      // water, a shaft, or thin air — but if a side-view hole can barely hold
-      // a ball anywhere, its surfaces are all tipped into a hazard, which is
-      // exactly how the reshaped Water Hazard first came out.
+      // Drop a ball down 24 columns of the hole. Most of a side-view hole is
+      // deliberately open air now — that's the whole skee-ball premise — so
+      // this is not asking for continuous ground. It's asking that landings
+      // exist at all: the reshaped Water Hazard once had *zero* spots that
+      // held a ball, every surface tipping into the pond, and it played as an
+      // unwinnable hole rather than as a hard one.
       let held = 0;
       const columns = 24;
       for (let i = 0; i < columns; i++) {
         const sim = release(hole, ((i + 0.5) * hole.width) / columns, 2);
         if (sim.state === "resting" && sim.strokes === 0) held += 1;
       }
-      expect(held).toBeGreaterThan(columns * 0.4);
+      expect(held).toBeGreaterThanOrEqual(4);
     },
   );
 });

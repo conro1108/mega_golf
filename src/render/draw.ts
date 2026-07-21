@@ -475,6 +475,11 @@ export function drawHud(
 export interface TitleLayout {
   titleY: number;
   subY: number;
+  tabY: number;
+  tabW: number;
+  tabH: number;
+  tabLeft: number;
+  tabGap: number;
   barX: number;
   barY: number;
   barW: number;
@@ -495,11 +500,12 @@ export interface TitleLayout {
 }
 
 const TITLE_BLOCK = 40;
+const TAB_BLOCK = 48;
 const BAR_BLOCK = 22;
 const PLAY_BLOCK = 34;
 const PICK_BLOCK = 18;
 
-export function titleLayout(holeCount: number): TitleLayout {
+export function titleLayout(holeCount: number, courseCount = 2): TitleLayout {
   const playW = Math.min(160, VIEW.w - 40);
   const playH = 26;
   // Fewer, narrower columns as the screen narrows; a 6-wide grid needs ~440px.
@@ -508,39 +514,57 @@ export function titleLayout(holeCount: number): TitleLayout {
   const cellH = 28;
   const rows = Math.ceil(holeCount / cols);
 
+  const tabGap = 8;
+  const tabW = Math.min(120, Math.floor((VIEW.w - 24 - tabGap * (courseCount - 1)) / courseCount));
+  const tabH = 30;
+  const tabsW = tabW * courseCount + tabGap * (courseCount - 1);
+
   const horizonY = Math.round(VIEW.h - Math.min(104, VIEW.h * 0.22));
-  const contentH = TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK + rows * cellH;
+  const contentH = TITLE_BLOCK + TAB_BLOCK + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK + rows * cellH;
   const top = Math.max(6, Math.round((horizonY - contentH) / 2));
 
   const barW = playW;
+  const afterTabs = top + TITLE_BLOCK + TAB_BLOCK;
   return {
     titleY: top,
     subY: top + 24,
+    tabY: top + TITLE_BLOCK,
+    tabW,
+    tabH,
+    tabLeft: Math.round(VIEW.w / 2 - tabsW / 2),
+    tabGap,
     barX: Math.round(VIEW.w / 2 - barW / 2),
-    barY: top + TITLE_BLOCK,
+    barY: afterTabs,
     barW,
     barH: 4,
     playX: Math.round(VIEW.w / 2 - playW / 2),
-    playY: top + TITLE_BLOCK + BAR_BLOCK,
+    playY: afterTabs + BAR_BLOCK,
     playW,
     playH,
-    pickY: top + TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK,
+    pickY: afterTabs + BAR_BLOCK + PLAY_BLOCK,
     cols,
     rows,
     cellW,
     cellH,
-    gridTop: top + TITLE_BLOCK + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK,
+    gridTop: afterTabs + BAR_BLOCK + PLAY_BLOCK + PICK_BLOCK,
     gridLeft: Math.round(VIEW.w / 2 - (cols * cellW) / 2),
     horizonY,
   };
+}
+
+/** The on-screen box of one course tab. */
+export function titleTabRect(i: number, holeCount: number, courseCount = 2): { x: number; y: number; w: number; h: number } {
+  const L = titleLayout(holeCount, courseCount);
+  return { x: L.tabLeft + i * (L.tabW + L.tabGap), y: L.tabY, w: L.tabW, h: L.tabH };
 }
 
 /** The cell a hole occupies in the select grid. Exported so tests can aim at one. */
 export function titleCellRect(
   i: number,
   holeCount: number,
+  courseCount = 2,
 ): { x: number; y: number; w: number; h: number } {
-  const { cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount);
+  const { cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount, courseCount);
   return {
     x: gridLeft + (i % cols) * cellW,
     y: gridTop + Math.floor(i / cols) * cellH,
@@ -606,10 +630,26 @@ function drawScenery(ctx: CanvasRenderingContext2D, horizonY: number, time: numb
   ctx.fill();
 }
 
-/** Title screen: game name, progress, a play button, and a jump-to-any-hole grid. */
+/** What a course looks like to the title screen. Structural detail lives in `holes.ts`. */
+export interface CourseSummary {
+  name: string;
+  blurb: string;
+  holes: Hole[];
+}
+
+/**
+ * Title screen: game name, the two courses as tabs, and the selected course's
+ * progress, play button and hole grid.
+ *
+ * Picking a perspective is the first decision the game asks for, so the two
+ * courses are the most prominent thing under the wordmark rather than a
+ * setting buried somewhere.
+ */
 export function drawTitle(
   ctx: CanvasRenderingContext2D,
   opts: {
+    courses: CourseSummary[];
+    courseIndex: number;
     holes: Hole[];
     bestStrokes: (number | null)[];
     furthestUnplayed: number;
@@ -617,7 +657,7 @@ export function drawTitle(
     time?: number;
   },
 ): void {
-  const L = titleLayout(opts.holes.length);
+  const L = titleLayout(opts.holes.length, opts.courses.length);
 
   // Sky: a shallow gradient rather than a flat fill, so the screen has a top
   // and a bottom instead of being one uniform slab.
@@ -639,11 +679,37 @@ export function drawTitle(
   ctx.fillText("MEGA GOLF", VIEW.w / 2 + 2, L.titleY + 2);
   ctx.fillStyle = "#f2d24b";
   ctx.fillText("MEGA GOLF", VIEW.w / 2, L.titleY);
-  ctx.font = "9px monospace";
+  ctx.font = "8px monospace";
   ctx.fillStyle = "#9d94b8";
-  ctx.fillText(`${opts.holes.length - 1} holes, then the mega hole`, VIEW.w / 2, L.subY);
+  ctx.fillText("two courses, two ways to play", VIEW.w / 2, L.subY);
 
-  // Progress: how much of the course you've actually put away. Label sits
+  // Course tabs. The selected one is filled and lifted; the other reads as
+  // available rather than disabled.
+  opts.courses.forEach((c, i) => {
+    const t = titleTabRect(i, opts.holes.length, opts.courses.length);
+    const on = i === opts.courseIndex;
+    ctx.fillStyle = on ? "#3f7d46" : "#241f38";
+    ctx.fillRect(t.x, t.y, t.w, t.h);
+    if (on) {
+      ctx.fillStyle = "#4c9455";
+      ctx.fillRect(t.x, t.y, t.w, 3);
+    }
+    ctx.strokeStyle = on ? "#63b061" : "#332c4d";
+    ctx.lineWidth = on ? 2 : 1;
+    ctx.strokeRect(t.x, t.y, t.w, t.h);
+    ctx.fillStyle = on ? "#ffffff" : "#7a719a";
+    ctx.font = "10px monospace";
+    ctx.fillText(c.name, t.x + t.w / 2, t.y + 10);
+  });
+
+  // The selected course's blurb goes *under* the tab row, across the full
+  // width. Inside the tab it overflowed the box on any narrow screen — a tab
+  // is only ~120 units wide and this is a sentence.
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#9d94b8";
+  ctx.fillText(opts.courses[opts.courseIndex].blurb, VIEW.w / 2, L.tabY + L.tabH + 5);
+
+  // Progress: how much of this course you've actually put away. Label sits
   // above its own track — at 4 units tall the bar is a rule, and text sharing
   // that line just looks struck through.
   const done = opts.bestStrokes.reduce<number>((n, s) => n + (s !== null ? 1 : 0), 0);
@@ -676,7 +742,7 @@ export function drawTitle(
   ctx.fillText("— or pick a hole —", VIEW.w / 2, L.pickY + 4);
 
   opts.holes.forEach((hole, i) => {
-    const { x, y, w, h } = titleCellRect(i, opts.holes.length);
+    const { x, y, w, h } = titleCellRect(i, opts.holes.length, opts.courses.length);
     const isMega = i === opts.holes.length - 1;
     const best = opts.bestStrokes[i];
     const played = best !== null;
@@ -705,10 +771,21 @@ export function homeButtonHitTest(x: number, y: number): boolean {
   return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 }
 
-/** Hit-testing to match drawTitle's layout. Returns a hole index, or -1 for the play button, or null for no hit. */
-export function titleHitTest(x: number, y: number, holeCount: number): number | null {
-  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount);
-  if (x >= playX && x <= playX + playW && y >= playY && y <= playY + playH) return -1;
+/** What the player just tapped on the title screen. */
+export type TitleHit =
+  | { kind: "course"; index: number }
+  | { kind: "play" }
+  | { kind: "hole"; index: number };
+
+/** Hit-testing to match drawTitle's layout, sharing its geometry so the two can't drift. */
+export function titleHitTest(x: number, y: number, holeCount: number, courseCount = 2): TitleHit | null {
+  for (let i = 0; i < courseCount; i++) {
+    const t = titleTabRect(i, holeCount, courseCount);
+    if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) return { kind: "course", index: i };
+  }
+
+  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout(holeCount, courseCount);
+  if (x >= playX && x <= playX + playW && y >= playY && y <= playY + playH) return { kind: "play" };
 
   if (y < gridTop) return null;
   const row = Math.floor((y - gridTop) / cellH);
@@ -716,36 +793,42 @@ export function titleHitTest(x: number, y: number, holeCount: number): number | 
   if (col < 0 || col >= cols) return null;
   const i = row * cols + col;
   if (i < 0 || i >= holeCount) return null;
-  return i;
+  return { kind: "hole", index: i };
 }
 
-/** End-of-round scorecard: front nine / back nine + mega hole / total. */
+/**
+ * End-of-round scorecard for one course: the nine, the mega hole, the total.
+ * There is no "front/back nine" split any more — a course is nine plus its
+ * finale, and the two courses are scored separately.
+ */
 export function drawScorecard(
   ctx: CanvasRenderingContext2D,
-  opts: { holes: Hole[]; strokes: (number | null)[] },
+  opts: { course: CourseSummary; strokes: (number | null)[] },
 ): void {
   ctx.fillStyle = "#171326";
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+
+  const holes = opts.course.holes;
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f2d24b";
   ctx.font = "18px monospace";
   ctx.textBaseline = "top";
   ctx.fillText("SCORECARD", VIEW.w / 2, 10);
+  ctx.font = "9px monospace";
+  ctx.fillStyle = "#9d94b8";
+  ctx.fillText(opts.course.name, VIEW.w / 2, 32);
 
-  // Margins shrink with the viewport: the landscape-only 60px inset left a
-  // portrait screen with barely room for "12 (par 30)" beside its label.
+  // Margins shrink with the viewport: a landscape-only inset left a portrait
+  // screen with barely room for "12 (par 30)" beside its label.
   const margin = Math.max(12, Math.round(VIEW.w * 0.125));
-
-  const frontEnd = 9;
-  const backEnd = opts.holes.length - 1;
 
   const section = (from: number, to: number) => {
     let par = 0;
     let strokes = 0;
     let played = 0;
     for (let i = from; i < to; i++) {
-      par += opts.holes[i].par;
+      par += holes[i].par;
       if (opts.strokes[i] !== null) {
         strokes += opts.strokes[i]!;
         played++;
@@ -754,19 +837,17 @@ export function drawScorecard(
     return { par, strokes, played, of: to - from };
   };
 
-  const front = section(0, frontEnd);
-  const back = section(frontEnd, backEnd);
-  const mega = section(backEnd, opts.holes.length);
-  const total = section(0, opts.holes.length);
+  const mainNine = section(0, holes.length - 1);
+  const mega = section(holes.length - 1, holes.length);
+  const total = section(0, holes.length);
 
   ctx.font = "11px monospace";
   ctx.textAlign = "left";
   const rows: [string, ReturnType<typeof section>][] = [
-    ["OUT (front 9)", front],
-    ["IN (back 9)", back],
+    [`HOLES 1-${holes.length - 1}`, mainNine],
     ["MEGA HOLE", mega],
   ];
-  let y = 40;
+  let y = 56;
   for (const [label, s] of rows) {
     ctx.fillStyle = "#9d94b8";
     ctx.fillText(label, margin, y);

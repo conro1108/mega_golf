@@ -174,6 +174,76 @@ export function thickCurve(controls: readonly Pt[], halfWidth: number, spacing: 
   return [...left, ...right.reverse()];
 }
 
+/** A flat slab of ground: a launch pad or a landing platform to arc between. */
+export function platform(
+  x1: number,
+  x2: number,
+  topY: number,
+  baseline: number,
+  material: MaterialId = "green",
+): Terrain {
+  return { material, points: [[x1, topY], [x2, topY], [x2, baseline], [x1, baseline]] };
+}
+
+/** Left and right bumpers, the standing walls of a side-view hole. */
+export function sides(width: number, height: number): Terrain[] {
+  return [
+    { material: "rubber", points: [[-8, 0], [0, 0], [0, height], [-8, height]] },
+    { material: "rubber", points: [[width, 0], [width + 8, 0], [width + 8, height], [width, height]] },
+  ];
+}
+
+/**
+ * A drop-in pocket: a landing platform with a walled well in its top, the cup
+ * at the bottom. This is the skee-ball ending — the thing that makes a
+ * side-view hole about the *arc* rather than the roll.
+ *
+ * The lips on either side of the mouth have vertical outer faces, so a ball
+ * travelling along the ground into the pocket hits that face and is rejected;
+ * only a ball descending steeply enough to clear the lip's peak drops through
+ * the mouth and into the well. Tune `lip` up to reject faster rollers, `mouth`
+ * down to demand a tighter arc.
+ *
+ * Returns the terrain to spread into `terrain: [...]` and the `cup` coordinate
+ * (authored at rest height on the well floor). Everything is arithmetic on the
+ * arguments, so it stays replay-exact.
+ */
+export function pocket(
+  cx: number,
+  groundY: number,
+  baseline: number,
+  opts: { mouth?: number; lip?: number; depth?: number; half?: number; material?: MaterialId } = {},
+): { terrain: Terrain[]; cup: Pt } {
+  const mouth = opts.mouth ?? 40;
+  const lip = opts.lip ?? 15;
+  const depth = opts.depth ?? 20;
+  const half = opts.half ?? mouth / 2 + 22;
+  const material = opts.material ?? "green";
+
+  const m = mouth / 2;
+  const wall = 6; // inner-wall run, so the well floor is narrower than the mouth
+  const floorY = groundY + depth;
+  const peakY = groundY - lip;
+
+  const top: Pt[] = [
+    [cx - half, groundY],
+    [cx - m - 3, groundY],
+    [cx - m - 3, peakY], // vertical outer face of the left lip — the rejector
+    [cx - m + 3, peakY], // narrow flat cap on the lip
+    [cx - m + 3 + wall, floorY],
+    [cx + m - 3 - wall, floorY],
+    [cx + m - 3, peakY],
+    [cx + m + 3, peakY],
+    [cx + m + 3, groundY], // vertical outer face of the right lip
+    [cx + half, groundY],
+  ];
+
+  return {
+    terrain: [{ material, points: [...top, [cx + half, baseline], [cx - half, baseline]] }],
+    cup: [cx, floorY - BALL_RADIUS],
+  };
+}
+
 /** A closed smooth loop: mounds, islands, ponds, sand hollows. */
 export function blob(controls: readonly Pt[], spacing: number = SPACING): Pt[] {
   return smooth(controls, spacing, true);

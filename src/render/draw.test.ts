@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { holedBallSprite } from "./draw";
 import { createSim, BALL_RADIUS } from "../engine/sim";
-import { HOLES } from "../holes";
+import { ALL_HOLES as HOLES } from "../holes";
 
 /**
  * The drop-in is render-only, but it's the bit of the cup a player actually

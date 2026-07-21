@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { smooth, ridge, blob, restY, SPACING, type Pt } from "./shape";
-import { BALL_RADIUS } from "../engine/sim";
+import { smooth, ridge, blob, pocket, platform, restY, SPACING, type Pt } from "./shape";
+import { BALL_RADIUS, MAX_POWER, createSim, simulateShot } from "../engine/sim";
+import type { Hole } from "../engine/world";
 
 const PROFILE: Pt[] = [
   [0, 210],
@@ -108,5 +109,57 @@ describe("restY", () => {
 
   it("throws rather than silently returning a wrong cup height off the ends", () => {
     expect(() => restY(PROFILE, 900)).toThrow();
+  });
+});
+
+/**
+ * The pocket is the whole reason a side-view hole feels like skee-ball rather
+ * than golf, and the property that makes it one is asymmetric: an arc drops
+ * in, a ground ball does not. Both halves matter — a pocket that accepted
+ * rollers would just be a cup, and one that rejected arcs too would be
+ * unplayable.
+ */
+describe("pocket", () => {
+  const p = pocket(400, 210, 270, {});
+  const hole: Hole = {
+    name: "pocket rig",
+    idea: "test fixture",
+    par: 3,
+    width: 560,
+    height: 270,
+    start: [60, 207],
+    cup: p.cup,
+    terrain: [
+      // A long flat approach feeding the pocket from the left, so a rolling
+      // ball genuinely arrives at the lip with speed.
+      platform(0, 340, 210, 270),
+      ...p.terrain,
+    ],
+  };
+
+  it("puts the cup at rest height on the well floor", () => {
+    expect(p.cup[0]).toBe(400);
+    expect(p.cup[1]).toBe(210 + 20 - BALL_RADIUS);
+  });
+
+  it("rejects a ball rolled flat along the ground, at any speed", () => {
+    for (let k = 2; k <= 10; k++) {
+      const r = simulateShot(createSim(hole), { angle: 0, power: (MAX_POWER * k) / 10 });
+      expect(r.state, `flat roll at power ${k}/10 should not drop in`).not.toBe("holed");
+    }
+  });
+
+  it("accepts an arc that comes down through the mouth", () => {
+    let holed = 0;
+    for (let a = 0; a < 90; a++) {
+      for (let k = 4; k <= 10; k++) {
+        const r = simulateShot(createSim(hole), {
+          angle: -(a / 90) * (Math.PI / 2),
+          power: (MAX_POWER * k) / 10,
+        });
+        if (r.state === "holed") holed += 1;
+      }
+    }
+    expect(holed).toBeGreaterThan(0);
   });
 });
