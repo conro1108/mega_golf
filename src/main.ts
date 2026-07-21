@@ -19,6 +19,7 @@ import {
   SINK_FRAMES,
 } from "./render/draw";
 import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
+import { drawMinimap, minimapHitTest, needsOverview, overviewZoom } from "./render/minimap";
 import { HOLES } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
@@ -50,6 +51,16 @@ let holeIndex = 0;
 let sim: Sim = createSim(HOLES[holeIndex]);
 let camX = 0;
 let camY = 0;
+
+/**
+ * Overview: the whole hole zoomed to fit, so a first shot can be planned
+ * against the actual layout instead of the one screen the ball starts on.
+ * `zoom` eases toward the mode's target rather than cutting, because a hard
+ * cut to a 3x-smaller world costs the player their bearings — which is the
+ * one thing this feature exists to give them.
+ */
+let overview = false;
+let zoom = 1;
 
 /** Best run (if any) for the current hole, replayed as a translucent ghost. */
 let ghost: { sim: Sim; shots: readonly Shot[]; nextIndex: number } | null = null;
@@ -137,6 +148,10 @@ function loadHole(i: number): void {
   const best = loadBest(storage, hole.name);
   ghost = best ? { sim: createSim(hole), shots: best.shots, nextIndex: 0 } : null;
 
+  // Open on the overview for holes that don't fit, so the first thing you see
+  // is the whole thing. One tap and you're on the ball.
+  overview = needsOverview(hole);
+  zoom = targetZoom();
   updateCamera(true);
 }
 
@@ -163,9 +178,16 @@ function roundToPar(): number | null {
   return any ? strokes - par : null;
 }
 
+/** The zoom this mode wants; 1 unless the overview is open on an oversized hole. */
+function targetZoom(): number {
+  return overview ? overviewZoom(sim.hole) : 1;
+}
+
 function updateCamera(snap: boolean): void {
-  const targetX = cameraAxis(sim.ball.x, sim.hole.width, VIEW.w);
-  const targetY = cameraAxis(sim.ball.y, sim.hole.height, VIEW.h);
+  // Zoomed out, one screen covers `VIEW.w / zoom` world units — the camera has
+  // to clamp against that, or the overview pins itself to a corner.
+  const targetX = cameraAxis(sim.ball.x, sim.hole.width, VIEW.w / zoom);
+  const targetY = cameraAxis(sim.ball.y, sim.hole.height, VIEW.h / zoom);
   if (snap) {
     camX = targetX;
     camY = targetY;
@@ -200,6 +222,17 @@ canvas.addEventListener("pointerdown", (e) => {
   }
 
   // state === "playing"
+  // While the overview is open the whole screen is a "close" button — there's
+  // nothing to aim at from out here, and hunting for a small target to get
+  // back to the game would be worse than the problem it solves.
+  if (overview) {
+    overview = false;
+    return;
+  }
+  if (minimapHitTest(sim.hole, px, py)) {
+    overview = true;
+    return;
+  }
   if (homeButtonHitTest(px, py)) {
     state = "title";
     bestStrokesCache = HOLES.map((h) => loadBest(storage, h.name)?.strokes ?? null);
@@ -258,6 +291,7 @@ canvas.addEventListener("pointercancel", release);
 
 window.addEventListener("keydown", (e) => {
   if (state !== "playing") return;
+  if (e.key === "o") overview = !overview;
   if (e.key === "r") loadHole(holeIndex);
   if (e.key === "n") loadHole(holeIndex + 1);
   if (e.key === "p") loadHole(holeIndex - 1);
@@ -278,6 +312,9 @@ function frame(now: number): void {
       advanceGhost();
       acc -= DT;
     }
+    const tz = targetZoom();
+    zoom += (tz - zoom) * 0.2;
+    if (Math.abs(tz - zoom) < 0.002) zoom = tz;
     updateCamera(false);
 
     if (sim.state === "holed" && !resultRecorded) {
@@ -291,8 +328,9 @@ function frame(now: number): void {
 
     // The camera no longer snaps to whole world units: at device resolution one
     // world unit is several screen pixels, so rounding made a slow pan judder.
-    draw(ctx, sim, camX, camY, ghost ? ghost.sim.ball : null, holedFrames / SINK_FRAMES);
-    if (dragging && aimPower > 0) drawAim(ctx, sim, camX, camY, aimAngle, aimPower, currentMaxPower());
+    draw(ctx, sim, camX, camY, ghost ? ghost.sim.ball : null, holedFrames / SINK_FRAMES, zoom);
+    if (dragging && aimPower > 0) drawAim(ctx, sim, camX, camY, aimAngle, aimPower, currentMaxPower(), zoom);
+    drawMinimap(ctx, sim, camX, camY, zoom, overview);
     drawHud(ctx, {
       name: sim.hole.name,
       par: sim.hole.par,

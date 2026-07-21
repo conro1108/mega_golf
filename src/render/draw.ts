@@ -16,7 +16,7 @@ const CUP_DEPTH = 11;
 /** Frames the drop-in animation takes once the ball is holed. */
 export const SINK_FRAMES = 18;
 
-const FILL: Record<MaterialId, string> = {
+export const FILL: Record<MaterialId, string> = {
   green: "#3f7d46",
   sand: "#d3bc7c",
   ice: "#8fc9dd",
@@ -240,11 +240,14 @@ export function draw(
   ghost?: { x: number; y: number } | null,
   /** 0..1 progress of the holed drop-in animation; render-only, see `ball`. */
   sinkT = 0,
+  /** World-to-screen scale. 1 is normal play; below 1 is the zoomed-out overview. */
+  zoom = 1,
 ): void {
   ctx.fillStyle = "#171326";
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
   ctx.save();
+  ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
 
   // Floor: a zone (or the whole hole) can override gravity to zero and name a
@@ -326,6 +329,22 @@ export function draw(
 
   if (!topDown) drawCupFront(ctx, sim.hole, cx, cy);
 
+  // Zoomed out, the ball and the cup are a pixel or two across and impossible
+  // to pick out of the terrain. Ring them at a constant *screen* size — hence
+  // dividing by zoom — so the overview still answers "where am I, where's the
+  // hole" at a glance.
+  if (zoom < 0.9) {
+    ctx.lineWidth = 1.5 / zoom;
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(drop.x, drop.y, 7 / zoom, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#f2d24b";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7 / zoom, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   ctx.restore();
 }
 
@@ -338,8 +357,10 @@ export function drawAim(
   angle: number,
   power: number,
   maxPower: number,
+  zoom = 1,
 ): void {
   ctx.save();
+  ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
 
   const bx = sim.ball.x;
