@@ -11,14 +11,28 @@ export type MaterialId = "green" | "sand" | "ice" | "rubber";
 export interface Material {
   /** Bounce along the contact normal. 0 = dead, 1 = perfectly elastic. */
   restitution: number;
-  /** Per-second tangential velocity decay while in contact. */
+  /** Per-second tangential velocity decay while in wall/edge contact. */
   friction: number;
+  /**
+   * Per-second velocity decay while this material is a top-down *floor*
+   * (see `step()` in sim.ts). Defaults to `friction` if unset.
+   *
+   * This is a separate number on purpose: `friction` fires only during edge
+   * contact (a bounce, or the brief re-penetration of a ball resting against
+   * a slope), while a top-down floor decays the ball's full velocity every
+   * single step, unconditionally, for as long as it's on that floor. The
+   * same numeric value reads very differently through those two mechanisms,
+   * which is exactly why reusing one constant made green feel slippery underfoot
+   * in side-view but sticky as a top-down floor, and why the game had no
+   * consistent way to tune the two roles independently.
+   */
+  rollingFriction?: number;
 }
 
 export const MATERIALS: Record<MaterialId, Material> = {
-  green: { restitution: 0.42, friction: 2.6 },
-  sand: { restitution: 0.05, friction: 14 },
-  ice: { restitution: 0.35, friction: 0.15 },
+  green: { restitution: 0.42, friction: 4.6, rollingFriction: 1.4 },
+  sand: { restitution: 0.05, friction: 22, rollingFriction: 11 },
+  ice: { restitution: 0.35, friction: 0.55, rollingFriction: 0.3 },
   rubber: { restitution: 0.88, friction: 2.0 },
 };
 

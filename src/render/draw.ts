@@ -30,6 +30,74 @@ function tracePolygon(ctx: CanvasRenderingContext2D, points: readonly (readonly 
   ctx.closePath();
 }
 
+/**
+ * Same outline, but with corners rounded to a small radius (clamped so it
+ * never overshoots a short edge). Collision still runs on the plain straight
+ * polygon in `world.ts` — this only softens the fill, purely cosmetic, so
+ * chunky rectangular terrain reads as chunky-but-not-blocky.
+ */
+function traceRoundedPolygon(
+  ctx: CanvasRenderingContext2D,
+  points: readonly (readonly [number, number])[],
+  radius: number,
+): void {
+  const n = points.length;
+  if (n < 3 || radius <= 0) {
+    tracePolygon(ctx, points);
+    return;
+  }
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const prev = points[(i - 1 + n) % n];
+    const curr = points[i];
+    const next = points[(i + 1) % n];
+    const toPrevX = prev[0] - curr[0];
+    const toPrevY = prev[1] - curr[1];
+    const toNextX = next[0] - curr[0];
+    const toNextY = next[1] - curr[1];
+    const lenPrev = Math.sqrt(toPrevX * toPrevX + toPrevY * toPrevY);
+    const lenNext = Math.sqrt(toNextX * toNextX + toNextY * toNextY);
+    const r = Math.min(radius, lenPrev / 2, lenNext / 2);
+    const p1x = curr[0] + (toPrevX / lenPrev) * r;
+    const p1y = curr[1] + (toPrevY / lenPrev) * r;
+    const p2x = curr[0] + (toNextX / lenNext) * r;
+    const p2y = curr[1] + (toNextY / lenNext) * r;
+    if (i === 0) ctx.moveTo(p1x, p1y);
+    else ctx.lineTo(p1x, p1y);
+    ctx.quadraticCurveTo(curr[0], curr[1], p2x, p2y);
+  }
+  ctx.closePath();
+}
+
+/**
+ * Rounded where it helps, straight where it would hurt: hole content authors
+ * a frame (or a divider) as several abutting thin rectangles — a top wall,
+ * a left wall, and so on — that are meant to meet flush at a shared corner.
+ * Rounding each one independently pulls every piece back from that shared
+ * point and leaves a visible notch of background showing through at the
+ * seam. So anything thinner than a couple of ball-widths keeps its sharp
+ * corners; only genuinely chunky shapes (hills, floor fills, ponds) round.
+ */
+function traceShape(
+  ctx: CanvasRenderingContext2D,
+  points: readonly (readonly [number, number])[],
+  radius: number,
+): void {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of points) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const thin = Math.min(maxX - minX, maxY - minY) < 12;
+  if (thin) tracePolygon(ctx, points);
+  else traceRoundedPolygon(ctx, points, radius);
+}
+
 export function draw(
   ctx: CanvasRenderingContext2D,
   sim: Sim,
@@ -43,8 +111,27 @@ export function draw(
   ctx.save();
   ctx.translate(-camX, -camY);
 
+  // Floor: a zone (or the whole hole) can override gravity to zero and name a
+  // floor material instead of terrain — that's the entire top-down mechanism
+  // (see world.ts `Zone`), but a zone is physics-only and was never drawn, so
+  // the ground under the ball's feet was just empty background. Fill it in
+  // first, underneath terrain, so every floor material — and every friction
+  // the player is about to feel — has a visible colour.
+  if (sim.hole.floor !== undefined) {
+    ctx.fillStyle = FILL[sim.hole.floor];
+    ctx.fillRect(0, 0, sim.hole.width, sim.hole.height);
+  }
+  if (sim.hole.zones) {
+    for (const z of sim.hole.zones) {
+      if (z.floor === undefined) continue;
+      traceShape(ctx, z.points, 8);
+      ctx.fillStyle = FILL[z.floor];
+      ctx.fill();
+    }
+  }
+
   for (const t of sim.hole.terrain) {
-    tracePolygon(ctx, t.points);
+    traceShape(ctx, t.points, 6);
     ctx.fillStyle = FILL[t.material];
     ctx.fill();
     ctx.strokeStyle = TOP[t.material];
@@ -58,7 +145,7 @@ export function draw(
   if (sim.hole.hazards) {
     ctx.fillStyle = "rgba(43, 92, 168, 0.75)";
     for (const h of sim.hole.hazards) {
-      tracePolygon(ctx, h.points);
+      traceShape(ctx, h.points, 10);
       ctx.fill();
     }
   }
@@ -151,6 +238,9 @@ export function drawAim(
   ctx.restore();
 }
 
+/** Bottom-left corner button, always available while playing. */
+const HOME_BTN = { x: 6, y: VIEW_H - 18, w: 40, h: 13 };
+
 export function drawHud(
   ctx: CanvasRenderingContext2D,
   opts: {
@@ -163,6 +253,8 @@ export function drawHud(
     /** Strokes-to-par across holes already completed this round, or null before any. */
     roundToPar: number | null;
     isNewBest: boolean;
+    /** Side-view vs. top-down: the two perspectives can look similar at a glance otherwise. */
+    topDown: boolean;
   },
 ): void {
   ctx.fillStyle = "#ffffff";
@@ -174,6 +266,23 @@ export function drawHud(
   ctx.font = "10px monospace";
   ctx.fillStyle = "#9d94b8";
   ctx.fillText(`par ${opts.par}`, 22, 24);
+
+  // Perspective badge: which of the two games this hole is playing right now.
+  ctx.font = "8px monospace";
+  ctx.fillStyle = opts.topDown ? "#f2d24b" : "#8fc9dd";
+  ctx.fillText(opts.topDown ? "▦ TOP-DOWN" : "▤ SIDE VIEW", 6, 36);
+
+  // Home button: the only way back to the title screen from mid-round.
+  ctx.fillStyle = "rgba(23, 19, 38, 0.85)";
+  ctx.fillRect(HOME_BTN.x, HOME_BTN.y, HOME_BTN.w, HOME_BTN.h);
+  ctx.strokeStyle = "#9d94b8";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(HOME_BTN.x, HOME_BTN.y, HOME_BTN.w, HOME_BTN.h);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "8px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("⌂ MENU", HOME_BTN.x + HOME_BTN.w / 2, HOME_BTN.y + 3);
+  ctx.textAlign = "left";
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#9d94b8";
@@ -257,6 +366,11 @@ export function drawTitle(
   });
 
   ctx.textAlign = "left";
+}
+
+/** True if the point hits the in-game home button drawn by `drawHud`. */
+export function homeButtonHitTest(x: number, y: number): boolean {
+  return x >= HOME_BTN.x && x <= HOME_BTN.x + HOME_BTN.w && y >= HOME_BTN.y && y <= HOME_BTN.y + HOME_BTN.h;
 }
 
 /** Hit-testing to match drawTitle's layout. Returns a hole index, or -1 for the play button, or null for no hit. */

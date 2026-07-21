@@ -7,13 +7,27 @@
  */
 
 import { createSim, strike, step, DT, type Sim } from "./engine/sim";
-import type { Shot } from "./engine/world";
-import { draw, drawAim, drawHud, drawTitle, drawScorecard, titleHitTest, VIEW_W, VIEW_H } from "./render/draw";
+import { isTopDown, type Shot } from "./engine/world";
+import {
+  draw,
+  drawAim,
+  drawHud,
+  drawTitle,
+  drawScorecard,
+  titleHitTest,
+  homeButtonHitTest,
+  VIEW_W,
+  VIEW_H,
+} from "./render/draw";
 import { HOLES } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
 const MAX_POWER = 430;
 const MAX_DRAG = 70;
+/** Minimum drag to register as a shot at all — small enough to allow a real gentle tap-in. */
+const MIN_POWER = 6;
+/** A lie in sand saps a shot's reach, same as a real bunker lie. */
+const SAND_POWER_SCALE = 0.55;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -59,8 +73,12 @@ let aimAngle = 0;
 let aimPower = 0;
 
 function resize(): void {
-  const raw = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
-  scale = raw >= 1 ? Math.floor(raw) : raw;
+  // Fill the available space rather than snapping to whole-number scales:
+  // on most phone viewports an integer-only scale leaves a third of the
+  // screen as dead black bars ("mushed into the middle"). imageSmoothingEnabled
+  // stays off and the CSS uses `image-rendering: pixelated`, so a fractional
+  // scale still reads as chunky pixel art, just not perfectly uniform pixels.
+  scale = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
   canvas.width = VIEW_W;
   canvas.height = VIEW_H;
   canvas.style.width = `${VIEW_W * scale}px`;
@@ -150,6 +168,11 @@ canvas.addEventListener("pointerdown", (e) => {
   }
 
   // state === "playing"
+  if (homeButtonHitTest(px, py)) {
+    state = "title";
+    bestStrokesCache = HOLES.map((h) => loadBest(storage, h.name)?.strokes ?? null);
+    return;
+  }
   if (sim.state === "holed") {
     if (holeIndex === HOLES.length - 1) {
       state = "scorecard";
@@ -165,6 +188,11 @@ canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
 });
 
+/** The lie the ball is addressed from right now, for shot-scaling purposes. */
+function currentMaxPower(): number {
+  return sim.groundMaterial === "sand" ? MAX_POWER * SAND_POWER_SCALE : MAX_POWER;
+}
+
 canvas.addEventListener("pointermove", (e) => {
   if (!dragging) return;
   // Pull back away from the intended direction, slingshot style.
@@ -176,13 +204,17 @@ canvas.addEventListener("pointermove", (e) => {
     return;
   }
   aimAngle = Math.atan2(dy, dx);
-  aimPower = (Math.min(len, MAX_DRAG) / MAX_DRAG) * MAX_POWER;
+  // A curved (not linear) mapping from drag length to power: it spreads more
+  // of the drag's usable range across gentle, controlled putts — a linear
+  // map compresses every short-game shot into the first few pixels of drag.
+  const frac = Math.min(len, MAX_DRAG) / MAX_DRAG;
+  aimPower = Math.pow(frac, 0.65) * currentMaxPower();
 });
 
 function release(): void {
   if (!dragging) return;
   dragging = false;
-  if (aimPower < 12) return;
+  if (aimPower < MIN_POWER) return;
   const shot: Shot = { angle: aimAngle, power: aimPower };
   attemptShots.push(shot);
   strike(sim, shot);
@@ -224,7 +256,8 @@ function frame(now: number): void {
     }
 
     draw(ctx, sim, Math.round(camX), Math.round(camY), ghost ? ghost.sim.ball : null);
-    if (dragging && aimPower > 0) drawAim(ctx, sim, Math.round(camX), Math.round(camY), aimAngle, aimPower, MAX_POWER);
+    if (dragging && aimPower > 0)
+      drawAim(ctx, sim, Math.round(camX), Math.round(camY), aimAngle, aimPower, currentMaxPower());
     drawHud(ctx, {
       name: sim.hole.name,
       par: sim.hole.par,
@@ -234,6 +267,7 @@ function frame(now: number): void {
       holeCount: HOLES.length,
       roundToPar: roundToPar(),
       isNewBest: lastIsNewBest,
+      topDown: isTopDown(sim.hole),
     });
   } else if (state === "title") {
     drawTitle(ctx, { holes: HOLES, bestStrokes: bestStrokesCache, furthestUnplayed: firstUnplayedIndex() });

@@ -32,6 +32,7 @@ export const FRONT_NINE: Hole[] = [
         ],
       },
       { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
+      { material: "rubber", points: [[480, 0], [488, 0], [488, 270], [480, 270]] },
     ],
   },
   {
@@ -108,6 +109,7 @@ export const FRONT_NINE: Hole[] = [
       { material: "rubber", points: [[180, 211], [230, 150], [248, 150], [248, 270], [180, 270]] },
       { material: GROUND, points: [[340, 190], [520, 190], [520, 270], [340, 270]] },
       { material: "rubber", points: [[-8, 0], [0, 0], [0, 270], [-8, 270]] },
+      { material: "rubber", points: [[560, 0], [568, 0], [568, 270], [560, 270]] },
     ],
   },
   {

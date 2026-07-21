@@ -106,7 +106,7 @@ describe("hazards", () => {
   it("charges a penalty and resets when the ball's centre enters the hazard", () => {
     const sim = createSim(hazardHole());
     const before = { x: sim.ball.x, y: sim.ball.y };
-    const r = simulateShot(sim, { angle: -0.15, power: 260 });
+    const r = simulateShot(sim, { angle: -0.15, power: 700 });
     expect(r.strokes).toBe(2); // the shot, plus the hazard penalty
     expect(sim.ball.x).toBeCloseTo(before.x, 5);
     expect(sim.state).toBe("resting");

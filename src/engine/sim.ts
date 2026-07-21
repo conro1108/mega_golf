@@ -17,6 +17,7 @@ import {
   zoneAt,
   type Edge,
   type Hole,
+  type MaterialId,
   type Shot,
 } from "./world";
 
@@ -24,7 +25,7 @@ export const DT = 1 / 120;
 /** Side-view default. Per-hole gravity overrides this; top-down uses (0, 0). */
 export const GRAVITY = 620;
 export const BALL_RADIUS = 3;
-export const CUP_RADIUS = 5;
+export const CUP_RADIUS = 8;
 
 /** Below this speed, and in contact, the ball is a candidate for sleeping. */
 const REST_SPEED = 7;
@@ -32,6 +33,17 @@ const REST_SPEED = 7;
 const REST_STEPS = 14;
 /** Hard cap so a pathological shot can't spin forever in a test. */
 const MAX_STEPS = 120 * 45;
+
+/**
+ * Capture radius around the cup: a bit wider than CUP_RADIUS so a slow ball
+ * that grazes the rim gets pulled toward centre rather than skirting past it
+ * or freezing wherever it happened to cross the edge.
+ */
+const CAPTURE_RADIUS = CUP_RADIUS + 3;
+/** Only a slow-enough ball gets captured; a fast one is meant to lip out. */
+const CAPTURE_SPEED = 150;
+/** Pull toward cup centre, applied while inside the capture radius. */
+const CAPTURE_ACCEL = 900;
 
 export interface Ball {
   x: number;
@@ -56,6 +68,8 @@ export interface Sim {
   contact: boolean;
   /** Sub-cups already banked this attempt, in `hole.checkpoints` order. */
   checkpointsHit: boolean[];
+  /** The material last under the ball — the "lie" a shot is played from. */
+  groundMaterial: MaterialId | undefined;
 }
 
 export function createSim(hole: Hole): Sim {
@@ -70,6 +84,7 @@ export function createSim(hole: Hole): Sim {
     restCounter: 0,
     contact: false,
     checkpointsHit: new Array(hole.checkpoints?.length ?? 0).fill(false),
+    groundMaterial: undefined,
   };
 }
 
@@ -101,6 +116,24 @@ export function step(sim: Sim): void {
   if (g[0] !== 0) b.vx += g[0] * DT;
   if (g[1] !== 0) b.vy += g[1] * DT;
 
+  // Magnetic capture: once a slow-enough ball is near the cup, pull it toward
+  // centre so it visibly rolls in and disappears there over a handful of
+  // steps, rather than freezing wherever it happened to cross the rim.
+  {
+    const cdx = sim.hole.cup[0] - b.x;
+    const cdy = sim.hole.cup[1] - b.y;
+    const cd2 = cdx * cdx + cdy * cdy;
+    if (cd2 < CAPTURE_RADIUS * CAPTURE_RADIUS && cd2 > 0) {
+      const sp2 = b.vx * b.vx + b.vy * b.vy;
+      if (sp2 < CAPTURE_SPEED * CAPTURE_SPEED) {
+        const cd = Math.sqrt(cd2);
+        const pull = CAPTURE_ACCEL * DT;
+        b.vx += (cdx / cd) * pull;
+        b.vy += (cdy / cd) * pull;
+      }
+    }
+  }
+
   // Substep so a fast ball can't tunnel through thin terrain. The count is
   // derived from speed, so it is identical on every replay.
   const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
@@ -121,11 +154,13 @@ export function step(sim: Sim): void {
   // in contact — which is what lets a top-down hole come to rest at all.
   const floor = zone?.floor ?? sim.hole.floor;
   if (floor !== undefined) {
-    let decay = 1 - MATERIALS[floor].friction * DT;
+    const rollFriction = MATERIALS[floor].rollingFriction ?? MATERIALS[floor].friction;
+    let decay = 1 - rollFriction * DT;
     if (decay < 0) decay = 0;
     b.vx = b.vx * decay;
     b.vy = b.vy * decay;
     sim.contact = true;
+    sim.groundMaterial = floor;
   }
 
   sim.steps += 1;
@@ -283,6 +318,7 @@ function resolveContacts(sim: Sim, sdt: number): void {
     b.vy += ty * dv;
 
     sim.contact = true;
+    sim.groundMaterial = e.material;
   }
 }
 
