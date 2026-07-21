@@ -598,5 +598,205 @@
     "steps": 148,
     "state": "resting",
     "strokes": 2
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.45,
+    "power": 130,
+    "x": 65.78440631024948,
+    "y": 172.34752429532583,
+    "steps": 147,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.45,
+    "power": 230,
+    "x": 70.41888274455313,
+    "y": 134.16827756809823,
+    "steps": 173,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.45,
+    "power": 330,
+    "x": 75.05105228586623,
+    "y": 96.00803523929899,
+    "steps": 189,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.45,
+    "power": 430,
+    "x": 79.68532701161082,
+    "y": 57.83045020589038,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.15,
+    "power": 130,
+    "x": 79.60832388427944,
+    "y": 176.18526011037147,
+    "steps": 147,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.15,
+    "power": 230,
+    "x": 95.31854721296712,
+    "y": 141.08081401815403,
+    "steps": 173,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.15,
+    "power": 330,
+    "x": 111.02095049885334,
+    "y": 105.99384178771582,
+    "steps": 189,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -1.15,
+    "power": 430,
+    "x": 126.73049006389344,
+    "y": 70.89092356328266,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.85,
+    "power": 130,
+    "x": 91.68068828424106,
+    "y": 183.93683614845537,
+    "steps": 147,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.85,
+    "power": 230,
+    "x": 117.06331104635277,
+    "y": 155.04296631080675,
+    "steps": 173,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.85,
+    "power": 330,
+    "x": 142.4332991569854,
+    "y": 126.16347891025718,
+    "steps": 189,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.85,
+    "power": 430,
+    "x": 167.81481717893126,
+    "y": 97.27086663447905,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.55,
+    "power": 130,
+    "x": 100.92311115281986,
+    "y": 194.90982720823624,
+    "steps": 147,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.55,
+    "power": 230,
+    "x": 133.71077925284308,
+    "y": 174.8075369645508,
+    "steps": 173,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.55,
+    "power": 330,
+    "x": 166.48212670849722,
+    "y": 154.71525299301248,
+    "steps": 189,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.55,
+    "power": 430,
+    "x": 199.2683677749853,
+    "y": 134.6138376710274,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.25,
+    "power": 130,
+    "x": 106.50999438142267,
+    "y": 208.124048678668,
+    "steps": 147,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.25,
+    "power": 230,
+    "x": 143.7738830778944,
+    "y": 198.60901574674395,
+    "steps": 173,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.25,
+    "power": 330,
+    "x": 181.01922301166204,
+    "y": 189.09871909152528,
+    "steps": 189,
+    "state": "resting",
+    "strokes": 1
+  },
+  {
+    "hole": "Dogleg",
+    "angle": -0.25,
+    "power": 430,
+    "x": 218.28148985388475,
+    "y": 179.584100286981,
+    "steps": 201,
+    "state": "resting",
+    "strokes": 1
   }
 ]

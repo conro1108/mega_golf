@@ -144,6 +144,46 @@ describe("materials", () => {
   });
 });
 
+describe("top-down", () => {
+  const topDown = HOLES.find((h) => h.floor !== undefined)!;
+
+  it("exists in the hole set", () => {
+    expect(topDown).toBeDefined();
+    expect(topDown.gravity).toEqual([0, 0]);
+  });
+
+  it("does not fall — a purely horizontal shot stays on its row", () => {
+    const sim = createSim(topDown);
+    const y0 = sim.ball.y;
+    strike(sim, { angle: 0, power: 200 });
+    for (let i = 0; i < 30; i++) step(sim);
+    expect(sim.ball.y).toBe(y0);
+  });
+
+  it("comes to rest on floor friction alone, with no wall contact", () => {
+    // Aimed up the open left channel so nothing is touched on the way.
+    const sim = createSim(topDown);
+    const r = simulateShot(sim, { angle: -Math.PI / 2, power: 150 });
+    expect(r.state).toBe("resting");
+    expect(r.steps).toBeLessThan(120 * 20);
+    expect(sim.ball.y).toBeLessThan(topDown.start[1]);
+  });
+
+  it("still banks off walls", () => {
+    const sim = createSim(topDown);
+    simulateShot(sim, { angle: -0.2, power: 420 });
+    // It cannot have passed through the right-hand wall.
+    expect(sim.ball.x).toBeLessThan(472);
+  });
+
+  it("replays deterministically like every other hole", () => {
+    const shot = { angle: -0.55, power: 380 };
+    const a = simulateShot(createSim(topDown), shot);
+    const b = simulateShot(createSim(topDown), shot);
+    expect([b.x, b.y, b.steps]).toEqual([a.x, a.y, a.steps]);
+  });
+});
+
 describe("scoring", () => {
   it("holes out and stops accepting strokes", () => {
     const hole = flatHole("green", "gimme");

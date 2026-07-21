@@ -103,4 +103,30 @@ export const HOLES: Hole[] = [
       { material: "rubber", points: [[960, 0], [968, 0], [968, 270], [960, 270]] },
     ],
   },
+  {
+    name: "Dogleg",
+    idea: "First top-down hole: the direct line is walled off, so read the bank.",
+    par: 3,
+    width: 480,
+    height: 270,
+    // Top-down: no gravity, and the floor is what slows the ball.
+    gravity: [0, 0],
+    floor: "green",
+    start: [60, 220],
+    cup: [420, 60],
+    terrain: [
+      // Outer walls.
+      { material: "rubber", points: [[0, 0], [480, 0], [480, 8], [0, 8]] },
+      { material: "rubber", points: [[0, 262], [480, 262], [480, 270], [0, 270]] },
+      { material: "rubber", points: [[0, 0], [8, 0], [8, 270], [0, 270]] },
+      { material: "rubber", points: [[472, 0], [480, 0], [480, 270], [472, 270]] },
+      // The divider that makes the hole. Hangs from the top wall, so the
+      // straight shot at the cup is blocked and the bank is the answer.
+      { material: "rubber", points: [[220, 8], [236, 8], [236, 175], [220, 175]] },
+      // NOTE: no sand patch here yet. Terrain polygons are colliders, so a
+      // sand rectangle on a top-down floor would behave as a bouncy wall
+      // rather than a slow patch. Floor *regions* (material by area, not by
+      // edge) are a separate feature the engine doesn't have — see DESIGN.md.
+    ],
+  },
 ];

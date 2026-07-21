@@ -72,10 +72,12 @@ alternates late. Difficulty climbs on two axes at once: within a perspective
 the player a beat of re-reading). Late holes can put a top-down section and a
 side-view section in the same *course* back to back deliberately.
 
-The ambitious version of the **mega hole**: transition perspective at a
-checkpoint cup partway through, so the finale is literally both games. Worth
-prototyping once one course exists — but a mega hole that stays in one
-perspective is still a fine mega hole. Don't block on it.
+The **mega hole** transitions perspective at a checkpoint cup partway
+through, so the finale is literally both games in one ride. This is the
+payoff the whole blend is building toward and the single best thing to show
+someone — the sub-cup that hands you off from a side-view descent into a
+top-down maze is the screenshot. Prototype the handoff early; the sim already
+supports it, since perspective is just gravity plus a floor material.
 
 ### Engine implication
 
@@ -165,7 +167,6 @@ Online anything (just record inputs locally), level editor, moving-camera
 cutscenes, more than 2 courses. Ship 9 holes + 1 mega hole that feel great.
 
 Both perspectives *are* in scope for v1 — the blend is the game, and a v1
-that ships only side-view hasn't tested the actual idea. But keep the
-top-down count low (~3 of 9) and let the mega hole stay single-perspective
-if the transition proves fiddly. Perspective-switching *within* a hole is the
-first thing to cut.
+that ships only side-view hasn't tested the actual idea. Start around 3
+top-down of 9 and let playtesting move that number. The perspective-switching
+mega hole is in scope too; it's the finale the course exists to reach.

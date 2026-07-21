@@ -38,6 +38,23 @@ export interface Hole {
   start: readonly [number, number];
   cup: readonly [number, number];
   terrain: readonly Terrain[];
+  /**
+   * Perspective, expressed as physics rather than as a mode flag.
+   *
+   * Side-view holes fall (the default). Top-down holes set gravity to zero
+   * and name a `floor` material instead — the ball is then always in contact
+   * with the ground, so that material's friction is what slows it down. One
+   * simulation serves both; see DESIGN.md "Two perspectives".
+   */
+  gravity?: readonly [number, number];
+  /** Set for top-down holes: the surface the ball rolls across everywhere. */
+  floor?: MaterialId;
+}
+
+export const DEFAULT_GRAVITY: readonly [number, number] = [0, 620];
+
+export function isTopDown(hole: Hole): boolean {
+  return hole.floor !== undefined;
 }
 
 /** A recorded shot. This is the entire payload a ghost putt needs. */

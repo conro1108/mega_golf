@@ -9,9 +9,10 @@
  * natural exponential for exactly this reason.
  */
 
-import { buildEdges, MATERIALS, type Edge, type Hole, type Shot } from "./world";
+import { buildEdges, DEFAULT_GRAVITY, MATERIALS, type Edge, type Hole, type Shot } from "./world";
 
 export const DT = 1 / 120;
+/** Side-view default. Per-hole gravity overrides this; top-down uses (0, 0). */
 export const GRAVITY = 620;
 export const BALL_RADIUS = 3;
 export const CUP_RADIUS = 5;
@@ -76,7 +77,11 @@ export function step(sim: Sim): void {
   if (sim.state !== "moving") return;
 
   const b = sim.ball;
-  b.vy += GRAVITY * DT;
+  const g = sim.hole.gravity ?? DEFAULT_GRAVITY;
+  // Guarded so a zero-gravity hole performs no float op at all here, keeping
+  // top-down bit-identical to a hand-written gravity-free integrator.
+  if (g[0] !== 0) b.vx += g[0] * DT;
+  if (g[1] !== 0) b.vy += g[1] * DT;
 
   // Substep so a fast ball can't tunnel through thin terrain. The count is
   // derived from speed, so it is identical on every replay.
@@ -91,6 +96,16 @@ export function step(sim: Sim): void {
     b.x += b.vx * sdt;
     b.y += b.vy * sdt;
     resolveContacts(sim, sdt);
+  }
+
+  // Top-down: the floor is everywhere, so its friction applies every step and
+  // the ball is permanently in contact (which is what lets it come to rest).
+  if (sim.hole.floor !== undefined) {
+    let decay = 1 - MATERIALS[sim.hole.floor].friction * DT;
+    if (decay < 0) decay = 0;
+    b.vx = b.vx * decay;
+    b.vy = b.vy * decay;
+    sim.contact = true;
   }
 
   sim.steps += 1;

@@ -4,7 +4,7 @@
  */
 
 import { BALL_RADIUS, CUP_RADIUS, type Sim } from "../engine/sim";
-import type { MaterialId } from "../engine/world";
+import { isTopDown, type MaterialId } from "../engine/world";
 
 export const VIEW_W = 480;
 export const VIEW_H = 270;
@@ -42,20 +42,29 @@ export function draw(ctx: CanvasRenderingContext2D, sim: Sim, camX: number, camY
     ctx.stroke();
   }
 
-  // Cup.
+  // Cup. Looking down the hole from above, it reads as a plain circle; from
+  // the side it wants the flag.
   const [cx, cy] = sim.hole.cup;
   ctx.fillStyle = "#120f1c";
   ctx.beginPath();
-  ctx.ellipse(cx, cy + 1, CUP_RADIUS, CUP_RADIUS * 0.6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#f2d24b";
-  ctx.fillRect(cx - 1, cy - 22, 2, 22);
-  ctx.beginPath();
-  ctx.moveTo(cx + 1, cy - 22);
-  ctx.lineTo(cx + 14, cy - 17);
-  ctx.lineTo(cx + 1, cy - 12);
-  ctx.closePath();
-  ctx.fill();
+  if (isTopDown(sim.hole)) {
+    ctx.arc(cx, cy, CUP_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#f2d24b";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else {
+    ctx.ellipse(cx, cy + 1, CUP_RADIUS, CUP_RADIUS * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f2d24b";
+    ctx.fillRect(cx - 1, cy - 22, 2, 22);
+    ctx.beginPath();
+    ctx.moveTo(cx + 1, cy - 22);
+    ctx.lineTo(cx + 14, cy - 17);
+    ctx.lineTo(cx + 1, cy - 12);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // Ball.
   ctx.fillStyle = "#ffffff";
