@@ -1,13 +1,13 @@
 /**
- * Canvas pixel renderer. Fixed low-res buffer, integer-scaled by the caller —
- * everything here draws in world units at 1:1.
+ * Canvas pixel renderer. Low-res buffer scaled up by the caller — everything
+ * here draws in world units at 1:1. The buffer's size is not fixed: it takes
+ * the window's aspect ratio (see `view.ts`), so screen-anchored UI reads
+ * `VIEW` rather than hard-coding 480x270.
  */
 
 import { BALL_RADIUS, CUP_RADIUS, type Sim } from "../engine/sim";
 import { isTopDown, type Hole, type MaterialId } from "../engine/world";
-
-export const VIEW_W = 480;
-export const VIEW_H = 270;
+import { VIEW } from "./view";
 
 const FILL: Record<MaterialId, string> = {
   green: "#3f7d46",
@@ -106,7 +106,7 @@ export function draw(
   ghost?: { x: number; y: number } | null,
 ): void {
   ctx.fillStyle = "#171326";
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
   ctx.save();
   ctx.translate(-camX, -camY);
@@ -238,8 +238,10 @@ export function drawAim(
   ctx.restore();
 }
 
-/** Bottom-left corner button, always available while playing. */
-const HOME_BTN = { x: 6, y: VIEW_H - 18, w: 40, h: 13 };
+/** Bottom-left corner button, always available while playing. Recomputed per use: the viewport resizes. */
+function homeButton(): { x: number; y: number; w: number; h: number } {
+  return { x: 6, y: VIEW.h - 18, w: 40, h: 13 };
+}
 
 export function drawHud(
   ctx: CanvasRenderingContext2D,
@@ -273,15 +275,16 @@ export function drawHud(
   ctx.fillText(opts.topDown ? "▦ TOP-DOWN" : "▤ SIDE VIEW", 6, 36);
 
   // Home button: the only way back to the title screen from mid-round.
+  const home = homeButton();
   ctx.fillStyle = "rgba(23, 19, 38, 0.85)";
-  ctx.fillRect(HOME_BTN.x, HOME_BTN.y, HOME_BTN.w, HOME_BTN.h);
+  ctx.fillRect(home.x, home.y, home.w, home.h);
   ctx.strokeStyle = "#9d94b8";
   ctx.lineWidth = 1;
-  ctx.strokeRect(HOME_BTN.x, HOME_BTN.y, HOME_BTN.w, HOME_BTN.h);
+  ctx.strokeRect(home.x, home.y, home.w, home.h);
   ctx.fillStyle = "#ffffff";
   ctx.font = "8px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("⌂ MENU", HOME_BTN.x + HOME_BTN.w / 2, HOME_BTN.y + 3);
+  ctx.fillText("⌂ MENU", home.x + home.w / 2, home.y + 3);
   ctx.textAlign = "left";
 
   ctx.textAlign = "right";
@@ -289,7 +292,7 @@ export function drawHud(
   ctx.font = "9px monospace";
   const roundLabel =
     opts.roundToPar === null ? "round: —" : `round: ${opts.roundToPar > 0 ? "+" : ""}${opts.roundToPar || "E"}`;
-  ctx.fillText(roundLabel, VIEW_W - 6, 6);
+  ctx.fillText(roundLabel, VIEW.w - 6, 6);
   ctx.textAlign = "left";
 
   if (opts.holed) {
@@ -298,16 +301,51 @@ export function drawHud(
     ctx.fillStyle = "#f2d24b";
     ctx.font = "16px monospace";
     ctx.textAlign = "center";
-    ctx.fillText(label, VIEW_W / 2, VIEW_H / 2 - 20);
+    ctx.fillText(label, VIEW.w / 2, VIEW.h / 2 - 20);
     ctx.font = "9px monospace";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText("tap for next hole", VIEW_W / 2, VIEW_H / 2 + 2);
+    ctx.fillText("tap for next hole", VIEW.w / 2, VIEW.h / 2 + 2);
     if (opts.isNewBest) {
       ctx.fillStyle = "#7de08a";
-      ctx.fillText("new best — ghost updated", VIEW_W / 2, VIEW_H / 2 + 14);
+      ctx.fillText("new best — ghost updated", VIEW.w / 2, VIEW.h / 2 + 14);
     }
     ctx.textAlign = "left";
   }
+}
+
+/**
+ * Title-screen geometry, derived from the current viewport so the same code
+ * lays out a wide landscape screen and a narrow portrait one. Shared by
+ * `drawTitle` and `titleHitTest` — they used to carry duplicate magic numbers,
+ * which is exactly the sort of thing that silently drifts once it can change.
+ */
+function titleLayout(): {
+  playX: number;
+  playY: number;
+  playW: number;
+  playH: number;
+  cols: number;
+  cellW: number;
+  cellH: number;
+  gridTop: number;
+  gridLeft: number;
+} {
+  const playW = Math.min(140, VIEW.w - 40);
+  const playH = 26;
+  // Fewer, narrower columns as the screen narrows; a 6-wide grid needs ~440px.
+  const cols = VIEW.w >= 420 ? 6 : VIEW.w >= 300 ? 4 : 3;
+  const cellW = Math.min(74, Math.floor((VIEW.w - 12) / cols));
+  return {
+    playX: Math.round(VIEW.w / 2 - playW / 2),
+    playY: 48,
+    playW,
+    playH,
+    cols,
+    cellW,
+    cellH: 26,
+    gridTop: 96,
+    gridLeft: Math.round(VIEW.w / 2 - (cols * cellW) / 2),
+  };
 }
 
 /** Title screen: game name, a play button, and a jump-to-any-hole grid. */
@@ -316,39 +354,33 @@ export function drawTitle(
   opts: { holes: Hole[]; bestStrokes: (number | null)[]; furthestUnplayed: number },
 ): void {
   ctx.fillStyle = "#171326";
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f2d24b";
   ctx.font = "22px monospace";
   ctx.textBaseline = "top";
-  ctx.fillText("MEGA GOLF", VIEW_W / 2, 10);
+  ctx.fillText("MEGA GOLF", VIEW.w / 2, 10);
   ctx.font = "9px monospace";
   ctx.fillStyle = "#9d94b8";
-  ctx.fillText(`${opts.holes.length - 1} holes, then the mega hole`, VIEW_W / 2, 34);
+  ctx.fillText(`${opts.holes.length - 1} holes, then the mega hole`, VIEW.w / 2, 34);
 
   // Play button.
-  const playY = 48;
-  const playH = 26;
+  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout();
   ctx.fillStyle = "#3f7d46";
-  ctx.fillRect(VIEW_W / 2 - 70, playY, 140, playH);
+  ctx.fillRect(playX, playY, playW, playH);
   ctx.strokeStyle = "#63b061";
   ctx.lineWidth = 2;
-  ctx.strokeRect(VIEW_W / 2 - 70, playY, 140, playH);
+  ctx.strokeRect(playX, playY, playW, playH);
   ctx.fillStyle = "#ffffff";
   ctx.font = "14px monospace";
-  ctx.fillText(opts.furthestUnplayed > 0 ? "CONTINUE ROUND" : "PLAY ROUND", VIEW_W / 2, playY + 6);
+  ctx.fillText(opts.furthestUnplayed > 0 ? "CONTINUE ROUND" : "PLAY ROUND", VIEW.w / 2, playY + 6);
 
   // Hole-select grid.
   ctx.font = "8px monospace";
   ctx.fillStyle = "#9d94b8";
-  ctx.fillText("or pick a hole", VIEW_W / 2, 84);
+  ctx.fillText("or pick a hole", VIEW.w / 2, 84);
 
-  const cols = 6;
-  const cellW = 74;
-  const cellH = 26;
-  const gridTop = 96;
-  const gridLeft = VIEW_W / 2 - (cols * cellW) / 2;
   opts.holes.forEach((hole, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
@@ -370,20 +402,15 @@ export function drawTitle(
 
 /** True if the point hits the in-game home button drawn by `drawHud`. */
 export function homeButtonHitTest(x: number, y: number): boolean {
-  return x >= HOME_BTN.x && x <= HOME_BTN.x + HOME_BTN.w && y >= HOME_BTN.y && y <= HOME_BTN.y + HOME_BTN.h;
+  const b = homeButton();
+  return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 }
 
 /** Hit-testing to match drawTitle's layout. Returns a hole index, or -1 for the play button, or null for no hit. */
 export function titleHitTest(x: number, y: number, holeCount: number): number | null {
-  const playY = 48;
-  const playH = 26;
-  if (x >= VIEW_W / 2 - 70 && x <= VIEW_W / 2 + 70 && y >= playY && y <= playY + playH) return -1;
+  const { playX, playY, playW, playH, cols, cellW, cellH, gridTop, gridLeft } = titleLayout();
+  if (x >= playX && x <= playX + playW && y >= playY && y <= playY + playH) return -1;
 
-  const cols = 6;
-  const cellW = 74;
-  const cellH = 26;
-  const gridTop = 96;
-  const gridLeft = VIEW_W / 2 - (cols * cellW) / 2;
   if (y < gridTop) return null;
   const row = Math.floor((y - gridTop) / cellH);
   const col = Math.floor((x - gridLeft) / cellW);
@@ -399,13 +426,17 @@ export function drawScorecard(
   opts: { holes: Hole[]; strokes: (number | null)[] },
 ): void {
   ctx.fillStyle = "#171326";
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f2d24b";
   ctx.font = "18px monospace";
   ctx.textBaseline = "top";
-  ctx.fillText("SCORECARD", VIEW_W / 2, 10);
+  ctx.fillText("SCORECARD", VIEW.w / 2, 10);
+
+  // Margins shrink with the viewport: the landscape-only 60px inset left a
+  // portrait screen with barely room for "12 (par 30)" beside its label.
+  const margin = Math.max(12, Math.round(VIEW.w * 0.125));
 
   const frontEnd = 9;
   const backEnd = opts.holes.length - 1;
@@ -439,11 +470,11 @@ export function drawScorecard(
   let y = 40;
   for (const [label, s] of rows) {
     ctx.fillStyle = "#9d94b8";
-    ctx.fillText(label, 60, y);
+    ctx.fillText(label, margin, y);
     ctx.fillStyle = s.played === s.of ? "#ffffff" : "#5a5270";
     const scoreText = s.played === s.of ? `${s.strokes} (par ${s.par})` : `${s.played}/${s.of} played`;
     ctx.textAlign = "right";
-    ctx.fillText(scoreText, VIEW_W - 60, y);
+    ctx.fillText(scoreText, VIEW.w - margin, y);
     ctx.textAlign = "left";
     y += 18;
   }
@@ -451,27 +482,27 @@ export function drawScorecard(
   y += 10;
   ctx.strokeStyle = "#3a3252";
   ctx.beginPath();
-  ctx.moveTo(60, y);
-  ctx.lineTo(VIEW_W - 60, y);
+  ctx.moveTo(margin, y);
+  ctx.lineTo(VIEW.w - margin, y);
   ctx.stroke();
   y += 12;
 
   ctx.font = "15px monospace";
   ctx.fillStyle = "#f2d24b";
-  ctx.fillText("TOTAL", 60, y);
+  ctx.fillText("TOTAL", margin, y);
   ctx.textAlign = "right";
   if (total.played === total.of) {
     const diff = total.strokes - total.par;
     const diffText = diff === 0 ? "E" : diff > 0 ? `+${diff}` : `${diff}`;
-    ctx.fillText(`${total.strokes} (${diffText})`, VIEW_W - 60, y);
+    ctx.fillText(`${total.strokes} (${diffText})`, VIEW.w - margin, y);
   } else {
-    ctx.fillText(`${total.played}/${total.of} played`, VIEW_W - 60, y);
+    ctx.fillText(`${total.played}/${total.of} played`, VIEW.w - margin, y);
   }
   ctx.textAlign = "left";
 
   ctx.textAlign = "center";
   ctx.font = "9px monospace";
   ctx.fillStyle = "#ffffff";
-  ctx.fillText("tap for title", VIEW_W / 2, VIEW_H - 16);
+  ctx.fillText("tap for title", VIEW.w / 2, VIEW.h - 16);
   ctx.textAlign = "left";
 }

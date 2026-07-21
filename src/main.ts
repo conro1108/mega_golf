@@ -16,9 +16,8 @@ import {
   drawScorecard,
   titleHitTest,
   homeButtonHitTest,
-  VIEW_W,
-  VIEW_H,
 } from "./render/draw";
+import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
 import { HOLES } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
@@ -73,17 +72,24 @@ let aimAngle = 0;
 let aimPower = 0;
 
 function resize(): void {
+  // The buffer takes the window's shape, so a phone held portrait gets a tall
+  // viewport instead of a letterboxed sliver of a landscape one.
+  setViewSize(computeViewSize(window.innerWidth, window.innerHeight));
+
   // Fill the available space rather than snapping to whole-number scales:
   // on most phone viewports an integer-only scale leaves a third of the
   // screen as dead black bars ("mushed into the middle"). imageSmoothingEnabled
   // stays off and the CSS uses `image-rendering: pixelated`, so a fractional
   // scale still reads as chunky pixel art, just not perfectly uniform pixels.
-  scale = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
-  canvas.width = VIEW_W;
-  canvas.height = VIEW_H;
-  canvas.style.width = `${VIEW_W * scale}px`;
-  canvas.style.height = `${VIEW_H * scale}px`;
+  scale = Math.min(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h);
+  canvas.width = VIEW.w;
+  canvas.height = VIEW.h;
+  canvas.style.width = `${VIEW.w * scale}px`;
+  canvas.style.height = `${VIEW.h * scale}px`;
   ctx.imageSmoothingEnabled = false;
+
+  // A resize changes what fits on screen, so the camera clamp changes with it.
+  if (state === "playing") updateCamera(true);
 }
 
 function firstUnplayedIndex(): number {
@@ -128,8 +134,8 @@ function roundToPar(): number | null {
 }
 
 function updateCamera(snap: boolean): void {
-  const targetX = clamp(sim.ball.x - VIEW_W / 2, 0, Math.max(0, sim.hole.width - VIEW_W));
-  const targetY = clamp(sim.ball.y - VIEW_H / 2, 0, Math.max(0, sim.hole.height - VIEW_H));
+  const targetX = cameraAxis(sim.ball.x, sim.hole.width, VIEW.w);
+  const targetY = cameraAxis(sim.ball.y, sim.hole.height, VIEW.h);
   if (snap) {
     camX = targetX;
     camY = targetY;
@@ -137,10 +143,6 @@ function updateCamera(snap: boolean): void {
     camX += (targetX - camX) * 0.12;
     camY += (targetY - camY) * 0.12;
   }
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }
 
 canvas.addEventListener("pointerdown", (e) => {

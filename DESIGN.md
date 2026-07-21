@@ -124,8 +124,11 @@ scorecard rivalry to concentrate.
 
 ## Pixel art notes
 
-- Fixed low-res canvas, integer-scaled (e.g., 480×270 for wider holes;
-  camera follows the ball with soft leading).
+- Low-res canvas scaled up to fill the screen; the camera follows the ball
+  with soft leading. The buffer takes the window's aspect ratio at a constant
+  pixel budget (480×270 landscape, ~245×530 on a portrait phone), so the game
+  plays either way up rather than demanding a rotate. A hole smaller than the
+  viewport on an axis is centred on it.
 - Terrain as chunky tile/silhouette art (side-view) or floor-plan tiles with
   walls reading as short vertical faces (top-down); the ball gets the juice
   budget — trail, squash on impact, hitstop on hard bounces, screen shake on

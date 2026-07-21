@@ -40,36 +40,10 @@
         image-rendering: pixelated;
         display: block;
       }
-      #rotate-hint {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        background: #0d0b14;
-        color: #f2d24b;
-        font: 16px monospace;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        box-sizing: border-box;
-      }
-      /* This is a landscape, scrolling-fairway game — on a touch device held
-         portrait it would only ever render tiny and letterboxed, so ask for
-         a rotate instead of trying to squeeze a wide hole into a tall screen. */
-      @media (orientation: portrait) and (pointer: coarse) {
-        #rotate-hint {
-          display: flex;
-        }
-        canvas {
-          display: none;
-        }
-      }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
-    <div id="rotate-hint">rotate your phone to landscape&nbsp;⟳<br />mega golf plays sideways</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
