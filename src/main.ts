@@ -72,24 +72,43 @@ let aimAngle = 0;
 let aimPower = 0;
 
 function resize(): void {
-  // The buffer takes the window's shape, so a phone held portrait gets a tall
-  // viewport instead of a letterboxed sliver of a landscape one.
-  setViewSize(computeViewSize(window.innerWidth, window.innerHeight));
+  // Measure the padded content box, not the window: `body` is inset by the
+  // safe-area env() values, so sizing from innerWidth/innerHeight overflows an
+  // `overflow: hidden` body and clips the canvas at both ends. In landscape
+  // there was vertical slack to absorb that; in portrait the buffer's aspect
+  // nearly matches the screen, so the bottom-left MENU button would end up
+  // under the home indicator.
+  const style = getComputedStyle(document.body);
+  const pad = (v: string): number => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const availW = window.innerWidth - pad(style.paddingLeft) - pad(style.paddingRight);
+  const availH = window.innerHeight - pad(style.paddingTop) - pad(style.paddingBottom);
+
+  // The buffer takes the available box's shape, so a phone held portrait gets
+  // a tall viewport instead of a letterboxed sliver of a landscape one.
+  const prevW = VIEW.w;
+  const prevH = VIEW.h;
+  setViewSize(computeViewSize(availW, availH));
 
   // Fill the available space rather than snapping to whole-number scales:
   // on most phone viewports an integer-only scale leaves a third of the
   // screen as dead black bars ("mushed into the middle"). imageSmoothingEnabled
   // stays off and the CSS uses `image-rendering: pixelated`, so a fractional
   // scale still reads as chunky pixel art, just not perfectly uniform pixels.
-  scale = Math.min(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h);
+  scale = Math.min(availW / VIEW.w, availH / VIEW.h);
   canvas.width = VIEW.w;
   canvas.height = VIEW.h;
   canvas.style.width = `${VIEW.w * scale}px`;
   canvas.style.height = `${VIEW.h * scale}px`;
   ctx.imageSmoothingEnabled = false;
 
-  // A resize changes what fits on screen, so the camera clamp changes with it.
-  if (state === "playing") updateCamera(true);
+  // A different viewport means a different camera clamp, so re-anchor — but
+  // only when it actually changed. Mobile browsers fire `resize` every time
+  // the URL bar collapses, and snapping the camera mid-shot on each of those
+  // would be a visible lurch.
+  if (state === "playing" && (VIEW.w !== prevW || VIEW.h !== prevH)) updateCamera(true);
 }
 
 function firstUnplayedIndex(): number {

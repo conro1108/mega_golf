@@ -3,7 +3,7 @@
   "short_name": "Mega Golf",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#0d0b14",
   "theme_color": "#171326",
   "icons": [

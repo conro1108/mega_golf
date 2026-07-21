@@ -21,8 +21,8 @@ const TARGET_AREA = BASE_W * BASE_H;
  * otherwise produce a viewport so narrow on one axis that you can't see the
  * next bounce. Past these bounds we letterbox instead of zooming out further.
  */
-const MIN_DIM = 220;
-const MAX_DIM = 560;
+export const MIN_DIM = 220;
+export const MAX_DIM = 560;
 
 export interface ViewSize {
   w: number;

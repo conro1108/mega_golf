@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_H, BASE_W, cameraAxis, computeViewSize } from "./view";
+import { BASE_H, BASE_W, MAX_DIM, MIN_DIM, cameraAxis, computeViewSize } from "./view";
 
 describe("computeViewSize", () => {
   it("reproduces the authored 16:9 viewport on a 16:9 window", () => {
@@ -30,8 +30,8 @@ describe("computeViewSize", () => {
 
   it("clamps extreme aspect ratios instead of zooming out forever", () => {
     const sliver = computeViewSize(200, 2000);
-    expect(sliver.w).toBeGreaterThanOrEqual(220);
-    expect(sliver.h).toBeLessThanOrEqual(560);
+    expect(sliver.w).toBeGreaterThanOrEqual(MIN_DIM);
+    expect(sliver.h).toBeLessThanOrEqual(MAX_DIM);
   });
 
   it("falls back to the base viewport for a degenerate window", () => {
