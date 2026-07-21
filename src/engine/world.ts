@@ -31,7 +31,12 @@ export interface Material {
 
 export const MATERIALS: Record<MaterialId, Material> = {
   green: { restitution: 0.42, friction: 4.6, rollingFriction: 1.4 },
-  sand: { restitution: 0.05, friction: 22, rollingFriction: 11 },
+  // Sand takes the ball's energy rather than returning any of it: a shot that
+  // arrives in a bunker should stop where it pitches, not skip or trickle on.
+  // `rollingFriction` is deliberately left where it was — that role (a
+  // top-down sand floor) always worked; it was side-view bunkers that were
+  // silently playing as green.
+  sand: { restitution: 0.02, friction: 28, rollingFriction: 11 },
   ice: { restitution: 0.35, friction: 0.55, rollingFriction: 0.3 },
   rubber: { restitution: 0.88, friction: 2.0 },
 };
@@ -127,6 +132,40 @@ export function zoneAt(hole: Hole, x: number, y: number): Zone | undefined {
     if (pointInPolygon(x, y, hole.zones[i].points)) return hole.zones[i];
   }
   return undefined;
+}
+
+/** How far beneath a contact point to sample for the terrain body underneath it. */
+export const MATERIAL_PROBE = 1;
+
+/**
+ * The material of the terrain body under a contact point.
+ *
+ * Content authors a patch — a bunker, an ice sheet — as a polygon laid *on top
+ * of* the fairway slab, sharing its top edge exactly. The collision pass walks
+ * edges, and once the fairway's edge has depenetrated the ball to exactly one
+ * radius, the patch's coincident edge is no longer penetrating, so it is
+ * skipped entirely: every bunker in the game was physically green, however the
+ * ball bounced and rolled through it. Rather than making coincident edges both
+ * fire (which would double up friction wherever two walls abut flush — the
+ * other half of the content), resolve the material by *region*: sample just
+ * beneath the surface and take the body found there.
+ *
+ * Later polygons win, matching the renderer's painter's order — the patch you
+ * can see on top is the one you feel.
+ *
+ * Pure comparisons and division, so it stays replay-exact.
+ */
+export function terrainMaterialAt(
+  hole: Hole,
+  x: number,
+  y: number,
+  fallback: MaterialId,
+): MaterialId {
+  let found = fallback;
+  for (let i = 0; i < hole.terrain.length; i++) {
+    if (pointInPolygon(x, y, hole.terrain[i].points)) found = hole.terrain[i].material;
+  }
+  return found;
 }
 
 /** A hole is top-down if the cup sits under a floor, whether hole-wide or a local zone. */

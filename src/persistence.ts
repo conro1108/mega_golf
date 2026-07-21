@@ -22,7 +22,21 @@ export interface BestRun {
   shots: readonly Shot[];
 }
 
-const BEST_PREFIX = "megagolf:best:";
+/**
+ * A recorded run is a list of shots replayed through the simulation, so it is
+ * only meaningful under the physics it was recorded against. Bump the epoch
+ * whenever the simulation changes (the same moment `golden.json` gets
+ * regenerated) and stale bests are simply ignored rather than replaying into
+ * a ghost that wanders off and never holes out.
+ *
+ * v2: contact material resolved by region, so bunkers stopped playing as green.
+ */
+const BEST_PREFIX = "megagolf:best:v2:";
+
+/** Storage key for a hole's best run. Exported so tests can't drift from it. */
+export function bestKey(holeName: string): string {
+  return BEST_PREFIX + holeName;
+}
 
 /** In-memory fallback so the game still runs somewhere storage is unavailable (private browsing, quota). */
 export function memoryStorage(): Storage {
@@ -36,7 +50,7 @@ export function memoryStorage(): Storage {
 }
 
 export function loadBest(storage: Storage, holeName: string): BestRun | null {
-  const raw = storage.getItem(BEST_PREFIX + holeName);
+  const raw = storage.getItem(bestKey(holeName));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<BestRun>;
@@ -55,6 +69,6 @@ export function loadBest(storage: Storage, holeName: string): BestRun | null {
 export function saveBestIfBetter(storage: Storage, holeName: string, run: BestRun): boolean {
   const existing = loadBest(storage, holeName);
   if (existing && existing.strokes <= run.strokes) return false;
-  storage.setItem(BEST_PREFIX + holeName, JSON.stringify(run));
+  storage.setItem(bestKey(holeName), JSON.stringify(run));
   return true;
 }

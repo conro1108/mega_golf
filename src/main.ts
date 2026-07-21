@@ -6,7 +6,7 @@
  * same sequence a headless replay produces.
  */
 
-import { createSim, strike, step, DT, type Sim } from "./engine/sim";
+import { createSim, strike, step, maxPowerForLie, DT, type Sim } from "./engine/sim";
 import { isTopDown, type Shot } from "./engine/world";
 import {
   draw,
@@ -21,12 +21,9 @@ import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
 import { HOLES } from "./holes";
 import { loadBest, saveBestIfBetter, memoryStorage, type Storage } from "./persistence";
 
-const MAX_POWER = 430;
 const MAX_DRAG = 70;
 /** Minimum drag to register as a shot at all — small enough to allow a real gentle tap-in. */
 const MIN_POWER = 6;
-/** A lie in sand saps a shot's reach, same as a real bunker lie. */
-const SAND_POWER_SCALE = 0.55;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
@@ -211,7 +208,7 @@ canvas.addEventListener("pointerdown", (e) => {
 
 /** The lie the ball is addressed from right now, for shot-scaling purposes. */
 function currentMaxPower(): number {
-  return sim.groundMaterial === "sand" ? MAX_POWER * SAND_POWER_SCALE : MAX_POWER;
+  return maxPowerForLie(sim.groundMaterial);
 }
 
 canvas.addEventListener("pointermove", (e) => {

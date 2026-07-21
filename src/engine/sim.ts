@@ -14,7 +14,9 @@ import {
   DEFAULT_GRAVITY,
   MATERIALS,
   pointInPolygon,
+  terrainMaterialAt,
   zoneAt,
+  MATERIAL_PROBE,
   type Edge,
   type Hole,
   type MaterialId,
@@ -25,7 +27,21 @@ export const DT = 1 / 120;
 /** Side-view default. Per-hole gravity overrides this; top-down uses (0, 0). */
 export const GRAVITY = 620;
 export const BALL_RADIUS = 3;
+/** Fastest a clean lie can launch the ball; the input layer maps drag onto this. */
+export const MAX_POWER = 430;
 export const CUP_RADIUS = 8;
+
+/**
+ * How much of a full swing a sand lie leaves you. Modest, because sand's own
+ * friction is what punishes a bunker — cap the escape shot as well and the
+ * ball can end up unable to leave the bunker at all.
+ */
+export const SAND_POWER_SCALE = 0.85;
+
+/** Fastest launch available from the lie the ball is currently sitting on. */
+export function maxPowerForLie(material: MaterialId | undefined): number {
+  return material === "sand" ? MAX_POWER * SAND_POWER_SCALE : MAX_POWER;
+}
 
 /** Below this speed, and in contact, the ball is a candidate for sleeping. */
 const REST_SPEED = 7;
@@ -298,7 +314,16 @@ function resolveContacts(sim: Sim, sdt: number): void {
     b.x += nx * pen;
     b.y += ny * pen;
 
-    const m = MATERIALS[e.material];
+    // Which material this contact is *made of* is a question about the body
+    // under the surface, not about the edge that happened to be hit first —
+    // see `terrainMaterialAt`. The edge's own material is the fallback.
+    const material = terrainMaterialAt(
+      sim.hole,
+      cx - nx * MATERIAL_PROBE,
+      cy - ny * MATERIAL_PROBE,
+      e.material,
+    );
+    const m = MATERIALS[material];
     const vn = b.vx * nx + b.vy * ny;
     if (vn < 0) {
       // Reflect the normal component, scaled by restitution.
@@ -318,7 +343,7 @@ function resolveContacts(sim: Sim, sdt: number): void {
     b.vy += ty * dv;
 
     sim.contact = true;
-    sim.groundMaterial = e.material;
+    sim.groundMaterial = material;
   }
 }
 

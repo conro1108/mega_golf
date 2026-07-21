@@ -45,13 +45,17 @@ export const FRONT_NINE: Hole[] = [
     cup: [590, 208],
     terrain: [
       {
+        // Ramped lips, not vertical ones. Sand only started applying its own
+        // friction once contact material was resolved by region, and a
+        // sheer-walled pit plus a real bunker lie is a ball you never get out
+        // of — the sand kills each escape attempt before it reaches the wall.
         material: GROUND,
         points: [
           [0, 211],
-          [240, 211],
+          [220, 211],
           [240, 230],
           [400, 230],
-          [400, 211],
+          [420, 211],
           [640, 211],
           [640, 270],
           [0, 270],

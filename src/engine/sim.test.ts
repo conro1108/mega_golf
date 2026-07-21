@@ -144,6 +144,70 @@ describe("materials", () => {
   });
 });
 
+describe("material patches laid over a fairway", () => {
+  /**
+   * How every bunker in the course is authored: a patch polygon sharing its
+   * top edge exactly with the slab underneath it. The slab's edge depenetrates
+   * the ball to exactly one radius, so the patch's coincident edge is no
+   * longer overlapping and the edge walk skips it — which is why bunkers spent
+   * the whole project playing as green. Material is resolved by region now.
+   */
+  function patchedHole(patch: Hole["terrain"][number]["material"], from = 200, to = 600): Hole {
+    const base = flatHole("green", `patched-${patch}`);
+    return {
+      ...base,
+      terrain: [
+        ...base.terrain,
+        { material: patch, points: [[from, 200], [to, 200], [to, 270], [from, 270]] },
+      ],
+    };
+  }
+
+  const shot = { angle: -0.35, power: 400 };
+
+  it("a sand patch on a green fairway actually stops the ball", () => {
+    const plain = runToRest(flatHole("green"), shot.angle, shot.power);
+    const bunkered = runToRest(patchedHole("sand"), shot.angle, shot.power);
+    expect(plain.x).toBeGreaterThan(380);
+    // Enters the patch at x=200 and dies there rather than running on through.
+    expect(bunkered.x).toBeLessThan(280);
+  });
+
+  it("reports the patch as the lie, so shot power reflects it", () => {
+    const sim = createSim(patchedHole("sand"));
+    simulateShot(sim, shot);
+    expect(sim.groundMaterial).toBe("sand");
+  });
+
+  it("an ice patch on a green fairway carries the ball further", () => {
+    const plain = runToRest(flatHole("green"), shot.angle, shot.power);
+    const iced = runToRest(patchedHole("ice"), shot.angle, shot.power);
+    expect(iced.x).toBeGreaterThan(plain.x);
+  });
+
+  it("leaves the fairway either side of the patch alone", () => {
+    const sim = createSim(patchedHole("sand"));
+    // Too soft to reach the patch at x=200: still a green lie.
+    simulateShot(sim, { angle: -0.35, power: 180 });
+    expect(sim.ball.x).toBeLessThan(200);
+    expect(sim.groundMaterial).toBe("green");
+  });
+
+  it("does not let the ball hop back out of sand", () => {
+    const sim = createSim(patchedHole("sand"));
+    strike(sim, { angle: -0.35, power: 400 });
+    let landed = 0;
+    let maxHop = 0;
+    while (sim.state === "moving") {
+      step(sim);
+      if (sim.groundMaterial !== "sand") continue;
+      if (sim.contact) landed = sim.ball.y;
+      else if (landed) maxHop = Math.max(maxHop, landed - sim.ball.y);
+    }
+    expect(maxHop).toBeLessThan(BALL_RADIUS);
+  });
+});
+
 describe("top-down", () => {
   const topDown = HOLES.find((h) => h.floor !== undefined)!;
 
