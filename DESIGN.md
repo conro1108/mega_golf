@@ -11,15 +11,13 @@ is visible and learnable.
 
 Reference points: Desert Golfing (side-view, radical minimalism, infinite
 procedural course), Kirby's Dream Course / Zany Golf (top-down-ish, gimmick
-holes), Golf It / What the Golf (physics comedy). The genre splits on
+holes), Golf It / What the Golf (physics comedy). The genre usually splits on
 perspective — **side-view** (terrain silhouette, gravity is the star) vs
-**top-down** (bank shots and layout are the star). This is decision #1;
-everything downstream (physics, art, hole authoring) depends on it.
+**top-down** (bank shots and layout are the star).
 
-Proposed default: **side-view**, Desert Golfing-style but with handmade
-holes. It's the best fit for pixel art (terrain reads as a silhouette),
-the physics is simpler (2D circle vs. static terrain), and gravity makes
-even a flat hole interesting.
+**We do both.** Perspective is a property of a *hole*, not of the game. See
+"Two perspectives" below — this is the central structural decision and most
+things downstream (physics, art, hole authoring, progression) follow from it.
 
 ## Core loop
 
@@ -33,11 +31,69 @@ even a flat hole interesting.
 - Unlimited retries per hole feel right for casual play, but the *recorded*
   scorecard should be first-attempt-per-session so scores mean something.
 
+## Two perspectives
+
+The game contains **both** side-view and top-down holes, blended as a course
+progresses. They are two dialects of the same verb, not two games.
+
+- **Side-view** — gravity is the antagonist. Skill is reading arcs, slopes,
+  and launch height. Terrain reads as a silhouette. Easiest to understand at
+  a glance, so it teaches first.
+- **Top-down** — gravity is gone; the floor holds the ball. Skill is banks,
+  angles, and routing around hazards. The hole is a layout you read like a
+  map. Slower, more deliberate, more "puzzle" than "throw".
+
+### What stays identical
+
+This is the important half. The player learns **one** verb and never relearns
+it: drag back from the ball, release. Same slingshot gesture, same power
+ramp, same stroke-and-par scoring, same scorecard, same recorded shot shape
+`(hole_id, angle, power)` — so ghost putts work across both without a second
+system. Perspective changes what you *read*, never how you *act*.
+
+If a hole seems to want a different gesture, that is a signal the hole is
+wrong, not that the input needs a mode.
+
+### What legitimately differs
+
+- **Camera** — side-view follows the ball mostly horizontally; top-down has
+  to track both axes and wants more lead room.
+- **Aim preview** — an arc in side-view, a straight line (eventually with a
+  first-bank prediction) in top-down.
+- **Art** — silhouette-and-sky vs. floor-plan-and-walls. Different tilesets,
+  same palette discipline.
+- **Pacing** — top-down holes take longer per stroke. Budget fewer of them.
+
+### Progression
+
+A course opens side-view, introduces top-down around the middle, and
+alternates late. Difficulty climbs on two axes at once: within a perspective
+(harder geometry, meaner materials) and across them (the switch itself costs
+the player a beat of re-reading). Late holes can put a top-down section and a
+side-view section in the same *course* back to back deliberately.
+
+The ambitious version of the **mega hole**: transition perspective at a
+checkpoint cup partway through, so the finale is literally both games. Worth
+prototyping once one course exists — but a mega hole that stays in one
+perspective is still a fine mega hole. Don't block on it.
+
+### Engine implication
+
+**One simulation, not two.** Gravity becomes a per-hole vector: side-view is
+`(0, +g)`, top-down is `(0, 0)` plus a global surface friction applied every
+step (the ball is always in contact with the floor). Collision, materials,
+resting, scoring, determinism, and ghost putts are all unchanged and shared.
+
+Resist forking the engine per perspective — the moment there are two
+simulations there are two sets of determinism guarantees, and the golden
+fixture stops meaning anything.
+
 ## Physics
 
-- 2D rigid ball vs. static terrain: gravity, restitution, rolling friction.
-  Keep it simple and **deterministic** (fixed timestep) from day one —
-  ghost putts (below) require that a recorded input replays identically.
+- 2D rigid ball vs. static terrain: gravity (per-hole, see above),
+  restitution, rolling friction. Keep it simple and **deterministic** (fixed
+  timestep) from day one — ghost putts (below) require that a recorded input
+  replays identically.
 - Surfaces as materials: green (normal), sand (kills momentum), ice (no
   friction), rubber (bouncy), water/void (stroke penalty + reset to last
   rest position).
@@ -47,7 +103,9 @@ even a flat hole interesting.
 ## Hole design principles
 
 - Each hole teaches or twists **one idea**. Name the idea before building
-  the hole; if you can't, cut it.
+  the hole; if you can't, cut it. "It's top-down" is not an idea — the
+  perspective is a lens, not a gimmick, and a hole still has to justify
+  itself within it.
 - Every hole has a safe route (par via boring shots) and a greedy route
   (birdie/ace line with real miss punishment). The tension between them is
   the whole design.
@@ -66,9 +124,13 @@ scorecard rivalry to concentrate.
 
 - Fixed low-res canvas, integer-scaled (e.g., 480×270 for wider holes;
   camera follows the ball with soft leading).
-- Terrain as chunky tile/silhouette art; the ball gets the juice budget —
-  trail, squash on impact, hitstop on hard bounces, screen shake on the
-  ace, big chunky stroke counter.
+- Terrain as chunky tile/silhouette art (side-view) or floor-plan tiles with
+  walls reading as short vertical faces (top-down); the ball gets the juice
+  budget — trail, squash on impact, hitstop on hard bounces, screen shake on
+  the ace, big chunky stroke counter.
+- The two perspectives must look like the same game: shared palette, shared
+  ball, shared HUD. A course's identity comes from its colours, not its
+  camera.
 - Course = palette. Same mechanics reskin cheaply: desert course, roof-top
   course, fridge-interior course. Palette swap + one new material per
   course keeps content cost linear.
@@ -84,14 +146,26 @@ scorecard rivalry to concentrate.
 
 ## Open questions
 
-- Side-view vs. top-down — prototype side-view first, but kill the question
-  with a playable toy, not debate.
-- Aiming feel: pull-back slingshot (Desert Golfing) vs. aim-then-power-meter.
-  Slingshot is one gesture and touch-friendly; start there.
+- **Does the perspective switch feel like variety or like whiplash?** The
+  whole blend rests on this and it can't be settled on paper — build one
+  top-down hole, sit it next to a side-view one, and play the pair.
+- **Does the slingshot actually carry to top-down?** The claim above is that
+  the input never changes. If top-down aiming turns out to want a longer,
+  finer drag (small angle errors compound over a long bank), that's a real
+  tension between "one verb" and "it feels good" — and feel probably wins.
+- Ratio and ordering: how many top-down holes in a 9-hole course, and where
+  does the first one land? Guess: 3 of 9, first at hole 4.
 - Stroke cap per hole? (e.g., pick up at 2x par to keep sessions moving.)
-- Engine/platform: web-first fits the async layer and short sessions.
+- Aiming feel: pull-back slingshot (Desert Golfing) vs. aim-then-power-meter.
+  Slingshot is one gesture and touch-friendly; started there.
 
 ## Not in scope for v1
 
 Online anything (just record inputs locally), level editor, moving-camera
 cutscenes, more than 2 courses. Ship 9 holes + 1 mega hole that feel great.
+
+Both perspectives *are* in scope for v1 — the blend is the game, and a v1
+that ships only side-view hasn't tested the actual idea. But keep the
+top-down count low (~3 of 9) and let the mega hole stay single-perspective
+if the transition proves fiddly. Perspective-switching *within* a hole is the
+first thing to cut.
