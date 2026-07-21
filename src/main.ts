@@ -16,6 +16,7 @@ import {
   drawScorecard,
   titleHitTest,
   homeButtonHitTest,
+  SINK_FRAMES,
 } from "./render/draw";
 import { VIEW, computeViewSize, setViewSize, cameraAxis } from "./render/view";
 import { HOLES } from "./holes";
@@ -27,7 +28,6 @@ const MIN_POWER = 6;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
-ctx.imageSmoothingEnabled = false;
 
 function getStorage(): Storage {
   try {
@@ -58,6 +58,8 @@ let ghost: { sim: Sim; shots: readonly Shot[]; nextIndex: number } | null = null
 let attemptShots: Shot[] = [];
 /** Guards the holed-transition bookkeeping (scorecard + best run) to run once. */
 let resultRecorded = false;
+/** Frames since the ball was holed, driving the drop-into-the-cup animation. */
+let holedFrames = 0;
 
 /** This session's official scorecard — first completion per hole, per DESIGN.md. */
 const roundStrokes: (number | null)[] = HOLES.map(() => null);
@@ -91,15 +93,26 @@ function resize(): void {
 
   // Fill the available space rather than snapping to whole-number scales:
   // on most phone viewports an integer-only scale leaves a third of the
-  // screen as dead black bars ("mushed into the middle"). imageSmoothingEnabled
-  // stays off and the CSS uses `image-rendering: pixelated`, so a fractional
-  // scale still reads as chunky pixel art, just not perfectly uniform pixels.
+  // screen as dead black bars ("mushed into the middle").
   scale = Math.min(availW / VIEW.w, availH / VIEW.h);
-  canvas.width = VIEW.w;
-  canvas.height = VIEW.h;
-  canvas.style.width = `${VIEW.w * scale}px`;
-  canvas.style.height = `${VIEW.h * scale}px`;
-  ctx.imageSmoothingEnabled = false;
+
+  // Draw at the display's real resolution. The renderer works in world units
+  // (a ~480-wide coordinate space) and everything it draws is vector — fills,
+  // arcs, text — so there is no reason to rasterise into a tiny buffer and
+  // stretch it. Doing that was the blurriness: a 480-wide buffer blown up ~6x
+  // on a 3x-DPR phone magnified every antialiased edge into a soft halo.
+  // Backing store = CSS size x devicePixelRatio, with the world-to-device
+  // scale baked into the context transform, so text and edges land on real
+  // pixels and stay sharp.
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = VIEW.w * scale;
+  const cssH = VIEW.h * scale;
+  canvas.width = Math.max(1, Math.round(cssW * dpr));
+  canvas.height = Math.max(1, Math.round(cssH * dpr));
+  canvas.style.width = `${cssW}px`;
+  canvas.style.height = `${cssH}px`;
+  ctx.setTransform(canvas.width / VIEW.w, 0, 0, canvas.height / VIEW.h, 0, 0);
+  ctx.imageSmoothingEnabled = true;
 
   // A different viewport means a different camera clamp, so re-anchor — but
   // only when it actually changed. Mobile browsers fire `resize` every time
@@ -119,6 +132,7 @@ function loadHole(i: number): void {
   sim = createSim(hole);
   attemptShots = [];
   resultRecorded = false;
+  holedFrames = 0;
 
   const best = loadBest(storage, hole.name);
   ghost = best ? { sim: createSim(hole), shots: best.shots, nextIndex: 0 } : null;
@@ -273,9 +287,12 @@ function frame(now: number): void {
       if (lastIsNewBest) bestStrokesCache[holeIndex] = sim.strokes;
     }
 
-    draw(ctx, sim, Math.round(camX), Math.round(camY), ghost ? ghost.sim.ball : null);
-    if (dragging && aimPower > 0)
-      drawAim(ctx, sim, Math.round(camX), Math.round(camY), aimAngle, aimPower, currentMaxPower());
+    if (sim.state === "holed" && holedFrames < SINK_FRAMES) holedFrames += 1;
+
+    // The camera no longer snaps to whole world units: at device resolution one
+    // world unit is several screen pixels, so rounding made a slow pan judder.
+    draw(ctx, sim, camX, camY, ghost ? ghost.sim.ball : null, holedFrames / SINK_FRAMES);
+    if (dragging && aimPower > 0) drawAim(ctx, sim, camX, camY, aimAngle, aimPower, currentMaxPower());
     drawHud(ctx, {
       name: sim.hole.name,
       par: sim.hole.par,

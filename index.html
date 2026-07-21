@@ -37,7 +37,9 @@
         box-sizing: border-box;
       }
       canvas {
-        image-rendering: pixelated;
+        /* Rendered at devicePixelRatio, so it is already 1:1 with the screen —
+           no upscaling filter to pick. `pixelated` here only fought the
+           renderer and made everything look soft. */
         display: block;
       }
     </style>

@@ -1,13 +1,20 @@
 /**
- * Canvas pixel renderer. Low-res buffer scaled up by the caller — everything
- * here draws in world units at 1:1. The buffer's size is not fixed: it takes
- * the window's aspect ratio (see `view.ts`), so screen-anchored UI reads
- * `VIEW` rather than hard-coding 480x270.
+ * Canvas renderer. Everything here draws in world units — a ~480-wide
+ * coordinate space whose scale onto real device pixels is baked into the
+ * context transform by the caller, so shapes and text rasterise at the
+ * display's native resolution. The viewport is not a fixed size: it takes the
+ * window's aspect ratio (see `view.ts`), so screen-anchored UI reads `VIEW`
+ * rather than hard-coding 480x270.
  */
 
 import { BALL_RADIUS, CUP_RADIUS, type Sim } from "../engine/sim";
-import { isTopDown, type Hole, type MaterialId } from "../engine/world";
+import { isTopDown, terrainMaterialAt, type Hole, type MaterialId } from "../engine/world";
 import { VIEW } from "./view";
+
+/** How deep the side-view cup is cut into the green, in world units. */
+const CUP_DEPTH = 11;
+/** Frames the drop-in animation takes once the ball is holed. */
+export const SINK_FRAMES = 18;
 
 const FILL: Record<MaterialId, string> = {
   green: "#3f7d46",
@@ -98,12 +105,141 @@ function traceShape(
   else traceRoundedPolygon(ctx, points, radius);
 }
 
+/**
+ * Where to draw the ball, and how big. Normally that's just its simulated
+ * position — but once it's holed the renderer takes over and walks it from
+ * wherever the capture caught it down to the bottom of the cup. The engine
+ * can't do this itself: `holed` is terminal and the drop is cosmetic, so
+ * keeping it here leaves replay determinism untouched.
+ *
+ * Exported for testing; `draw` is the only other caller.
+ */
+export function holedBallSprite(
+  sim: Sim,
+  cx: number,
+  cy: number,
+  topDown: boolean,
+  sink: number,
+): { x: number; y: number; r: number } {
+  const b = sim.ball;
+  if (sink <= 0) return { x: b.x, y: b.y, r: BALL_RADIUS };
+  const ease = sink * sink * (3 - 2 * sink);
+  // Centres up first, then falls: a ball caught on the rim rolls to the middle
+  // before it can go down, same as the real thing.
+  const centre = Math.min(1, sink * 1.8);
+  const x = b.x + (cx - b.x) * centre;
+  if (topDown) {
+    // No "down" to fall into from above — it shrinks away into the cup instead.
+    return { x, y: b.y + (cy - b.y) * centre, r: BALL_RADIUS * (1 - 0.8 * ease) };
+  }
+  const floor = mouthY(cy) + CUP_DEPTH - BALL_RADIUS - 2;
+  return { x, y: b.y + (floor - b.y) * ease, r: BALL_RADIUS };
+}
+
+/**
+ * The mouth of the cup sits on the putting surface, and a cup coordinate is
+ * authored where a ball *resting in it* would have its centre — i.e. one ball
+ * radius above the ground. Drawing the mouth at the raw cup y floated the rim
+ * above the grass.
+ */
+function mouthY(cy: number): number {
+  return cy + BALL_RADIUS;
+}
+
+/** The lip colour of the cup is whatever the ball is putting on. */
+function lipColours(hole: Hole, cx: number, cy: number): { top: string; fill: string } {
+  const m = terrainMaterialAt(hole, cx, mouthY(cy) + 3, "green");
+  return { top: TOP[m], fill: FILL[m] };
+}
+
+/** Cavity and back lip: everything behind the ball. */
+function drawCupBack(ctx: CanvasRenderingContext2D, hole: Hole, cx: number, cy: number): void {
+  const r = CUP_RADIUS;
+  const my = mouthY(cy);
+  const { top } = lipColours(hole, cx, cy);
+
+  // The shaft. Walls taper slightly and the bottom carries a lighter ellipse,
+  // so it recedes like a bore instead of reading as a black box punched into
+  // the green.
+  const br = r - 2;
+  ctx.fillStyle = "#0b0912";
+  ctx.beginPath();
+  ctx.moveTo(cx - r, my);
+  ctx.lineTo(cx - br, my + CUP_DEPTH);
+  ctx.lineTo(cx + br, my + CUP_DEPTH);
+  ctx.lineTo(cx + r, my);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#171326";
+  ctx.beginPath();
+  ctx.ellipse(cx, my + CUP_DEPTH, br, br * 0.34, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // The mouth, an ellipse so the opening reads as a hole seen at an angle.
+  ctx.beginPath();
+  ctx.ellipse(cx, my, r, r * 0.34, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Back lip catches the light.
+  ctx.strokeStyle = top;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, my, r, r * 0.34, 0, Math.PI, Math.PI * 2);
+  ctx.stroke();
+
+  // Flagstick, planted in the cup rather than floating above it.
+  ctx.fillStyle = "#e8e4f0";
+  ctx.fillRect(cx - 1, my - 26, 2, 26 + CUP_DEPTH - 3);
+  ctx.fillStyle = "#f2d24b";
+  ctx.beginPath();
+  ctx.moveTo(cx + 1, my - 26);
+  ctx.lineTo(cx + 15, my - 21);
+  ctx.lineTo(cx + 1, my - 16);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Front lip: the sliver of green between you and the hole, drawn over the ball. */
+function drawCupFront(ctx: CanvasRenderingContext2D, hole: Hole, cx: number, cy: number): void {
+  const r = CUP_RADIUS;
+  const my = mouthY(cy);
+  const { top, fill } = lipColours(hole, cx, cy);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.ellipse(cx, my, r, r * 0.34, 0, 0, Math.PI);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = top;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - r, my);
+  ctx.lineTo(cx + r, my);
+  ctx.stroke();
+}
+
+/** From above the cup is a ring: dark bore, bright rim, flag in the middle. */
+function drawTopDownCup(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
+  ctx.fillStyle = "#0b0912";
+  ctx.beginPath();
+  ctx.arc(cx, cy, CUP_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#f2d24b";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(242, 210, 75, 0.35)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, CUP_RADIUS - 2.5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
 export function draw(
   ctx: CanvasRenderingContext2D,
   sim: Sim,
   camX: number,
   camY: number,
   ghost?: { x: number; y: number } | null,
+  /** 0..1 progress of the holed drop-in animation; render-only, see `ball`. */
+  sinkT = 0,
 ): void {
   ctx.fillStyle = "#171326";
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
@@ -160,29 +296,17 @@ export function draw(
     });
   }
 
-  // Cup. Looking down the hole from above, it reads as a plain circle; from
-  // the side it wants the flag.
+  // Cup. Drawn in two passes with the ball sandwiched between them, so the
+  // ball genuinely drops *into* the hole instead of parking beside a dark
+  // smudge: the cavity and the back lip go down first, the front lip goes on
+  // top and occludes whatever has fallen below the rim.
   const [cx, cy] = sim.hole.cup;
-  ctx.fillStyle = "#120f1c";
-  ctx.beginPath();
-  if (isTopDown(sim.hole)) {
-    ctx.arc(cx, cy, CUP_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#f2d24b";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  } else {
-    ctx.ellipse(cx, cy + 1, CUP_RADIUS, CUP_RADIUS * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#f2d24b";
-    ctx.fillRect(cx - 1, cy - 22, 2, 22);
-    ctx.beginPath();
-    ctx.moveTo(cx + 1, cy - 22);
-    ctx.lineTo(cx + 14, cy - 17);
-    ctx.lineTo(cx + 1, cy - 12);
-    ctx.closePath();
-    ctx.fill();
-  }
+  const topDown = isTopDown(sim.hole);
+  const sink = sim.state === "holed" ? sinkT : 0;
+  const drop = holedBallSprite(sim, cx, cy, topDown, sink);
+
+  if (topDown) drawTopDownCup(ctx, cx, cy);
+  else drawCupBack(ctx, sim.hole, cx, cy);
 
   // Ghost: a past best run, replaying underneath the live ball.
   if (ghost) {
@@ -193,10 +317,14 @@ export function draw(
   }
 
   // Ball.
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(sim.ball.x, sim.ball.y, BALL_RADIUS, 0, Math.PI * 2);
-  ctx.fill();
+  if (drop.r > 0.2) {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(drop.x, drop.y, drop.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (!topDown) drawCupFront(ctx, sim.hole, cx, cy);
 
   ctx.restore();
 }
