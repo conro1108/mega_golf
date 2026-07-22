@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_H, BASE_W, MAX_DIM, MIN_DIM, cameraAxis, computeViewSize } from "./view";
+import { BASE_H, BASE_W, MAX_DIM, MIN_DIM, OVERSCAN, cameraAxis, computeViewSize } from "./view";
 
 describe("computeViewSize", () => {
   it("reproduces the authored 16:9 viewport on a 16:9 window", () => {
@@ -60,9 +60,26 @@ describe("cameraAxis", () => {
     expect(cameraAxis(500, 1400, 480)).toBe(260);
   });
 
-  it("clamps at both edges so the void beyond the hole never shows", () => {
-    expect(cameraAxis(10, 1400, 480)).toBe(0);
-    expect(cameraAxis(1390, 1400, 480)).toBe(920);
+  it("overscans at both edges rather than jamming the ball into a corner", () => {
+    const pad = 480 * OVERSCAN;
+    expect(cameraAxis(10, 1400, 480)).toBe(-pad);
+    expect(cameraAxis(1390, 1400, 480)).toBe(920 + pad);
+  });
+
+  it("keeps the ball on screen with room to spare at a wall", () => {
+    // Ball flush against the right wall of a 1400-wide hole: it should still
+    // sit a healthy margin in from the screen edge, not on it.
+    const cam = cameraAxis(1400, 1400, 480);
+    const screenX = 1400 - cam;
+    expect(screenX).toBeLessThan(480 - 40);
+  });
+
+  it("never overscans so far the ball leaves the viewport", () => {
+    for (const ball of [0, 5, 700, 1395, 1400]) {
+      const cam = cameraAxis(ball, 1400, 480);
+      expect(ball - cam).toBeGreaterThanOrEqual(0);
+      expect(ball - cam).toBeLessThanOrEqual(480);
+    }
   });
 
   it("centres the hole itself when it is smaller than the viewport", () => {

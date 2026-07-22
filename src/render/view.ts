@@ -54,14 +54,28 @@ export function setViewSize(size: ViewSize): void {
 }
 
 /**
- * Camera position on one axis: follow the ball, clamped inside the hole —
- * except when the hole is smaller than the viewport on this axis, where it's
- * centred instead. Portrait makes that the common case (most side-view holes
- * are 270 tall against a ~530-tall viewport), and pinning such a hole to the
- * top edge would leave all the dead space under the player's thumb.
+ * How far past a hole's edge the camera may push, as a fraction of the
+ * viewport. Clamping hard at the boundary shoved the ball into the corner of
+ * the screen whenever you played near a wall — exactly when you most want to
+ * see where the shot is going, and on a phone exactly where your thumb is.
+ * Overscanning shows a strip of backdrop instead, which the renderer already
+ * draws for any hole shorter than the viewport.
+ */
+export const OVERSCAN = 0.18;
+
+/**
+ * Camera position on one axis: follow the ball, clamped inside the hole plus
+ * an overscan margin — except when the hole is smaller than the viewport on
+ * this axis, where it's centred instead. Portrait makes that the common case
+ * (most side-view holes are 270 tall against a ~530-tall viewport), and
+ * pinning such a hole to the top edge would leave all the dead space under the
+ * player's thumb.
  */
 export function cameraAxis(ballPos: number, worldSize: number, viewSize: number): number {
   if (worldSize <= viewSize) return (worldSize - viewSize) / 2;
+  const pad = viewSize * OVERSCAN;
   const target = ballPos - viewSize / 2;
-  return target < 0 ? 0 : target > worldSize - viewSize ? worldSize - viewSize : target;
+  const lo = -pad;
+  const hi = worldSize - viewSize + pad;
+  return target < lo ? lo : target > hi ? hi : target;
 }
