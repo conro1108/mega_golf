@@ -45,13 +45,13 @@ changed is that you choose the dialect up front and stay in it.
 > of a **course**. Both are on the front page, so nothing is hidden; the
 > variety just lives one level up.
 
-- **Side-view — "launch it."** Explicitly *skee-ball, not golf*. A tee pad, a
-  gap of open air, a landing. The ball lives in an **arc**, not a roll, and
-  holes end in a drop-in **pocket** whose lip rejects a ball arriving along
-  the ground — the shot has to come down out of the air. Gravity is light
-  (~440) so a max launch hangs and carries about a screen, and holes are
-  sized to one or two arcs. Undershoot and the ball drops into the gap and is
-  handed back to you.
+- **Side-view — "launch it."** Explicitly *skee-ball, not golf*. Rolling
+  ground — tee knolls, valleys, hollows — but the ball still lives in an
+  **arc**, not a roll: holes end in a drop-in **pocket** whose lip rejects a
+  ball arriving along the ground, so the shot has to come down out of the
+  air. A max launch carries about a screen and holes are sized to one or two
+  arcs. Undershoot and you land in the trouble the valley holds — sand, a
+  water basin, dead low ground — rather than falling out of the world.
 - **Top-down — "bank it."** Gravity is gone; the floor holds the ball. Skill
   is banks, angles, and routing around hazards. The hole is a layout you read
   like a map. Slower, more deliberate, more "puzzle" than "throw".
