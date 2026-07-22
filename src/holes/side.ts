@@ -163,11 +163,18 @@ export const SIDE_COURSE: Hole[] = [
   })(),
 
   (() => {
-    // Three knolls, two flooded dips. Read the whole chain before the first hop.
+    // Three landings, two flooded dips. Each landing is a *dished* plateau —
+    // two low rims with a shallow basin between them — not a dome. A dome's
+    // only flat spot is its peak, which is an unstable equilibrium: a ball
+    // that lands there rolls off whichever side it touched down on, so the
+    // hole read as unwinnable rather than hard. The dish gives a landing
+    // somewhere to actually settle while the flanks still shed a miss.
     const L: Pt[] = [
-      [0, 214], [60, 206], [130, 210], [170, 232], [215, 254], [260, 232],
-      [300, 210], [340, 206], [380, 210], [420, 232], [465, 254], [510, 232],
-      [550, 208], [614, 196],
+      [0, 214], [56, 204], [104, 212],
+      [148, 238], [196, 256], [244, 238],
+      [286, 210], [320, 218], [354, 210],
+      [396, 238], [444, 256], [492, 238],
+      [536, 210], [572, 202], [614, 196],
     ];
     const P = pocket(660, 196, 270, { mouth: 48, lip: 12, half: 46 });
     const R: Pt[] = [[706, 196], [720, 198]];
@@ -181,18 +188,20 @@ export const SIDE_COURSE: Hole[] = [
       cup: P.cup,
       terrain: [...fairway(270, L, P, R), ...sides(720, 270)],
       hazards: [
-        { points: blob([[184, 242], [246, 242], [246, 266], [184, 266]]) },
-        { points: blob([[434, 242], [496, 242], [496, 266], [434, 266]]) },
+        { points: blob([[158, 246], [238, 246], [238, 270], [158, 270]]) },
+        { points: blob([[406, 246], [486, 246], [486, 270], [406, 270]]) },
       ],
     } satisfies Hole;
   })(),
 
   (() => {
-    // Two real carries over water, one island to stand on in between — and the
-    // island's shoulders shed a sloppy landing straight into the drink.
+    // Two real carries over water, one island to stand on in between. The
+    // island is a dished plateau (see Stepping Stones) so it can hold a ball
+    // that finds it; its flanks are steep enough to shed one that doesn't.
     const L: Pt[] = [
-      [0, 204], [70, 198], [140, 206], [190, 222], [245, 258], [300, 262],
-      [350, 224], [390, 214], [430, 224], [472, 254], [505, 252], [535, 226], [564, 196],
+      [0, 204], [70, 198], [140, 208], [186, 234], [230, 258], [284, 262], [326, 246],
+      [354, 214], [392, 222], [430, 214],
+      [458, 246], [496, 256], [524, 236], [548, 212], [564, 196],
     ];
     const P = pocket(610, 196, 270, { mouth: 48, lip: 13, half: 46 });
     const R: Pt[] = [[656, 196], [700, 200]];
@@ -206,8 +215,8 @@ export const SIDE_COURSE: Hole[] = [
       cup: P.cup,
       terrain: [...fairway(270, L, P, R), ...sides(700, 270)],
       hazards: [
-        { points: blob([[208, 240], [336, 240], [336, 270], [208, 270]]) },
-        { points: blob([[448, 240], [528, 240], [528, 270], [448, 270]]) },
+        { points: blob([[196, 248], [330, 248], [330, 270], [196, 270]]) },
+        { points: blob([[462, 248], [526, 248], [526, 270], [462, 270]]) },
       ],
     } satisfies Hole;
   })(),

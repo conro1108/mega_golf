@@ -101,6 +101,80 @@ describe("every hole", () => {
   );
 });
 
+/**
+ * A hole that puts water either side of a landing is asking the player to hit
+ * that landing. So the landing has to be able to *hold* a ball.
+ *
+ * It is not enough for ground to exist there. Both water holes were built with
+ * domed islands, and a dome's only level spot is its peak — an unstable
+ * equilibrium, so a ball that landed on one rolled off whichever side it
+ * touched down on and every attempt ended wet. Water Hazard's island held a
+ * ball at *zero* of its columns; the hole was unwinnable rather than hard.
+ * Landings are dished plateaus now, and static friction (`grip`) lets ground
+ * steeper than 2.5 degrees hold a ball at all.
+ */
+describe("islands between hazards", () => {
+  /** The x-spans covered by a hole's hazards, merged and in order. */
+  function hazardSpans(hole: Hole): { from: number; to: number }[] {
+    const spans = (hole.hazards ?? []).map((h) => {
+      let from = Infinity;
+      let to = -Infinity;
+      for (const [x] of h.points) {
+        if (x < from) from = x;
+        if (x > to) to = x;
+      }
+      return { from, to };
+    });
+    spans.sort((a, b) => a.from - b.from);
+    const merged: { from: number; to: number }[] = [];
+    for (const s of spans) {
+      const last = merged[merged.length - 1];
+      if (last && s.from <= last.to) last.to = Math.max(last.to, s.to);
+      else merged.push({ ...s });
+    }
+    return merged;
+  }
+
+  /**
+   * Drop a ball straight down this column and run it to a stop. Returning the
+   * sim rather than a verdict keeps the caller's `state` comparison outside
+   * the narrowing introduced by assigning `state` here.
+   */
+  function dropColumn(hole: Hole, x: number) {
+    const sim = createSim(hole);
+    sim.ball = { x, y: 2, vx: 0, vy: 0 };
+    sim.safe = { x, y: 2 };
+    sim.state = "moving";
+    let guard = 0;
+    while (sim.state === "moving" && guard++ < 8000) step(sim);
+    return sim;
+  }
+
+  const islands: [string, Hole, number, number][] = [];
+  for (const hole of HOLES) {
+    if (hole.floor !== undefined) continue;
+    const spans = hazardSpans(hole);
+    for (let i = 0; i < spans.length - 1; i++) {
+      islands.push([`${hole.name} island ${i + 1}`, hole, spans[i].to, spans[i + 1].from]);
+    }
+  }
+
+  it("the course actually has islands between hazards to test", () => {
+    expect(islands.length).toBeGreaterThan(0);
+  });
+
+  it.each(islands)("%s can hold a ball", (_label, hole, from, to) => {
+    // Dropped from the top of the world: the harshest arrival there is, all
+    // vertical speed and no forward travel. A real arc arrives kinder.
+    let held = 0;
+    for (let x = from + BALL_RADIUS; x <= to - BALL_RADIUS; x += 4) {
+      const sim = dropColumn(hole, x);
+      if (sim.state === "resting" && sim.strokes === 0) held += 1;
+    }
+    expect(held, `nowhere between x=${from} and x=${to} holds a ball`).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("bunkers", () => {
   const bunkers = sideViewBunkers();
 

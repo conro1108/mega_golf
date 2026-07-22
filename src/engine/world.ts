@@ -22,6 +22,20 @@ export interface Material {
    */
   bounceGrip?: number;
   /**
+   * Static friction, as the steepest slope that holds a stationary ball —
+   * expressed as rise over run, so 0.36 is about 20 degrees.
+   *
+   * Without this the only force opposing gravity on a slope is viscous drag,
+   * whose equilibrium creep speed is `g * sin(slope) / friction`. On green
+   * that puts the steepest ball-holding ground at *2.5 degrees*: every hill
+   * shed the ball, and a domed island could not hold one anywhere, because a
+   * dome's flat spot is a single unstable point. Landing zones were
+   * unwinnable rather than difficult.
+   *
+   * Omit for a material that should never hold a stationary ball on a slope.
+   */
+  grip?: number;
+  /**
    * Per-second velocity decay while this material is a top-down *floor*
    * (see `step()` in sim.ts). Defaults to `friction` if unset.
    *
@@ -44,15 +58,17 @@ export const MATERIALS: Record<MaterialId, Material> = {
   // and the arc (the thing the whole side course is about) wasn't what was
   // being judged. At 0.25 a landing takes one modest hop and dies close to
   // where it came down.
-  green: { restitution: 0.25, friction: 4.2, rollingFriction: 1.75, bounceGrip: 0.72 },
+  green: { restitution: 0.25, friction: 4.2, rollingFriction: 1.75, bounceGrip: 0.72, grip: 0.36 },
   // Sand takes the ball's energy rather than returning any of it: a shot that
   // arrives in a bunker should stop where it pitches, not skip or trickle on.
-  sand: { restitution: 0.02, friction: 28, rollingFriction: 13.5, bounceGrip: 0.25 },
+  // It grips hardest of anything — a plugged lie stays put on a real slope.
+  sand: { restitution: 0.02, friction: 28, rollingFriction: 13.5, bounceGrip: 0.25, grip: 0.7 },
   // Ice rolling friction sets the top-down ice carry: at 0.3 a full-power shot
   // rolled for fourteen seconds, which is not "fast and dangerous", just slow
   // to watch. 0.72 keeps ice at ~2.4x a green carry with a watchable stop.
-  ice: { restitution: 0.3, friction: 0.55, rollingFriction: 0.72 },
-  rubber: { restitution: 0.88, friction: 2.0 },
+  // Almost no static grip either: an ice shelf sheds anything but a flat lie.
+  ice: { restitution: 0.3, friction: 0.55, rollingFriction: 0.72, grip: 0.05 },
+  rubber: { restitution: 0.88, friction: 2.0, grip: 0.3 },
 };
 
 export interface Terrain {

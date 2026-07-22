@@ -28,9 +28,46 @@ export interface MinimapRect {
 /** Extra tap slop around the minimap: it's small, and thumbs are not. */
 const TAP_PAD = 8;
 
-/** True when part of the hole is off screen — the only case worth a map. */
+/**
+ * How much bigger than the viewport a hole must be to be worth a map. A bare
+ * `> VIEW` test meant a hole a handful of units too wide for the current
+ * window — which any 480x270 hole is on a slightly-wide screen, since the
+ * viewport is derived from the window's aspect — got a full corner map
+ * covering a chunk of a hole you could already see all of.
+ */
+const OVERFLOW = 1.12;
+
+/** True when a meaningful part of the hole is off screen — the case worth a map. */
 export function needsOverview(hole: Hole): boolean {
-  return hole.width > VIEW.w + 1 || hole.height > VIEW.h + 1;
+  return hole.width > VIEW.w * OVERFLOW || hole.height > VIEW.h * OVERFLOW;
+}
+
+/** Opacity the map drops to while it would otherwise hide the ball or the cup. */
+const DIMMED = 0.2;
+
+/**
+ * True when the ball or the cup is on screen *behind* the map.
+ *
+ * The map lives in the corner the camera pushes play into whenever the ball
+ * is high and right — which on a top-down hole is exactly where the cup tends
+ * to sit. Rather than adding a gesture to move it, the map notices it is in
+ * the way and fades until it isn't; it stays tappable throughout.
+ */
+export function minimapOccluded(sim: Sim, camX: number, camY: number, zoom: number): boolean {
+  const r = minimapRect(sim.hole);
+  const pad = 6;
+  const points: [number, number][] = [
+    [sim.ball.x, sim.ball.y],
+    [sim.hole.cup[0], sim.hole.cup[1]],
+  ];
+  for (const [wx, wy] of points) {
+    const sx = (wx - camX) * zoom;
+    const sy = (wy - camY) * zoom;
+    if (sx >= r.x - pad && sx <= r.x + r.w + pad && sy >= r.y - pad && sy <= r.y + r.h + pad) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Where the minimap sits, sized to fit the hole's aspect into a corner box. */
@@ -73,12 +110,16 @@ export function drawMinimap(
   const r = minimapRect(hole);
 
   ctx.save();
+  if (minimapOccluded(sim, camX, camY, zoom)) ctx.globalAlpha = DIMMED;
   ctx.fillStyle = "rgba(23, 19, 38, 0.82)";
   ctx.fillRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);
   ctx.strokeStyle = open ? "#f2d24b" : "#5a5270";
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);
 
+  // Inner save: the world-scaled pass only. The outer save has to survive it,
+  // or the dimming above would be dropped before the markers below draw.
+  ctx.save();
   ctx.translate(r.x, r.y);
   ctx.scale(r.scale, r.scale);
 
@@ -146,6 +187,7 @@ export function drawMinimap(
   ctx.textBaseline = "top";
   ctx.fillText(open ? "tap to close" : "tap for full hole", r.x + r.w, r.y + r.h + 3);
   ctx.textAlign = "left";
+  ctx.restore();
 }
 
 function clamp(v: number, lo: number, hi: number): number {

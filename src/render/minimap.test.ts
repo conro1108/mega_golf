@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { minimapRect, minimapHitTest, needsOverview, overviewZoom } from "./minimap";
+import { minimapRect, minimapHitTest, minimapOccluded, needsOverview, overviewZoom } from "./minimap";
+import { createSim } from "../engine/sim";
 import { setViewSize, BASE_W, BASE_H, VIEW } from "./view";
 import { cameraAxis } from "./view";
 import type { Hole } from "../engine/world";
@@ -27,6 +28,47 @@ describe("needsOverview", () => {
   it("is on when the hole runs off either edge", () => {
     expect(needsOverview(hole(1400, BASE_H))).toBe(true);
     expect(needsOverview(hole(BASE_W, 700))).toBe(true);
+  });
+
+  it("ignores a hole only marginally bigger than the viewport", () => {
+    // The viewport takes the *window's* aspect, so a stock 480x270 hole
+    // overflows by a handful of units on plenty of ordinary screens. That is
+    // not worth a corner map covering a hole you can already see all of.
+    setViewSize({ w: 476, h: 272 });
+    expect(needsOverview(hole(480, 270))).toBe(false);
+  });
+});
+
+describe("minimapOccluded", () => {
+  const h = hole(1400, 760);
+
+  it("is true when the cup sits behind the map", () => {
+    const sim = createSim(h);
+    const r = minimapRect(h);
+    // Put the camera so the cup lands in the middle of the map's box.
+    const camX = h.cup[0] - (r.x + r.w / 2);
+    const camY = h.cup[1] - (r.y + r.h / 2);
+    // Park the ball far away so the cup is what triggers it.
+    sim.ball.x = camX + 10;
+    sim.ball.y = camY + VIEW.h - 10;
+    expect(minimapOccluded(sim, camX, camY, 1)).toBe(true);
+  });
+
+  it("is true when the ball sits behind the map", () => {
+    const sim = createSim(h);
+    const r = minimapRect(h);
+    const camX = 0;
+    const camY = 0;
+    sim.ball.x = r.x + r.w / 2;
+    sim.ball.y = r.y + r.h / 2;
+    expect(minimapOccluded(sim, camX, camY, 1)).toBe(true);
+  });
+
+  it("is false when neither is anywhere near it", () => {
+    const sim = createSim(h);
+    sim.ball.x = 10;
+    sim.ball.y = 700;
+    expect(minimapOccluded(sim, 0, 0, 1)).toBe(false);
   });
 });
 

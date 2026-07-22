@@ -37,8 +37,10 @@ export interface BestRun {
  * v5: feel pass — faster gravity/power at the same carry, deader landings
  *     (bounceGrip), tamed ice — plus the side course reshaped onto real
  *     rolling ground.
+ * v6: static friction (`grip`), so ground steeper than 2.5 degrees can hold a
+ *     ball, and the two water holes' landings reshaped from domes to dishes.
  */
-const BEST_PREFIX = "megagolf:best:v5:";
+const BEST_PREFIX = "megagolf:best:v6:";
 
 /** Storage key for a hole's best run. Exported so tests can't drift from it. */
 export function bestKey(holeName: string): string {

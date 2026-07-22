@@ -54,6 +54,14 @@ export function maxPowerForLie(material: MaterialId | undefined): number {
  */
 const IMPACT_SPEED = 40;
 
+/**
+ * Below this speed a supporting contact tests the material's static `grip`.
+ * Above it the ball is genuinely rolling and only viscous friction applies —
+ * static friction is a question about a ball that has essentially stopped,
+ * not a brake on one still travelling.
+ */
+const STATIC_SPEED = 26;
+
 /** Below this speed, and in contact, the ball is a candidate for sleeping. */
 const REST_SPEED = 7;
 /** Consecutive resting steps required before the ball is declared settled. */
@@ -173,7 +181,7 @@ export function step(sim: Sim): void {
   for (let s = 0; s < subs; s++) {
     b.x += b.vx * sdt;
     b.y += b.vy * sdt;
-    resolveContacts(sim, sdt);
+    resolveContacts(sim, sdt, g);
   }
 
   // The floor (if any, here or from the zone) is everywhere within its
@@ -287,7 +295,7 @@ function outOfBounds(sim: Sim): boolean {
   );
 }
 
-function resolveContacts(sim: Sim, sdt: number): void {
+function resolveContacts(sim: Sim, sdt: number, g: readonly [number, number]): void {
   const b = sim.ball;
   // Fixed iteration order over a fixed array: same contacts, same sequence,
   // every run.
@@ -364,6 +372,30 @@ function resolveContacts(sim: Sim, sdt: number): void {
     const dv = vt * decay - vt;
     b.vx += tx * dv;
     b.vy += ty * dv;
+
+    // Static friction: an almost-stopped ball on ground this material can
+    // hold stays put, instead of creeping downhill until a hazard catches it.
+    //
+    // Holds when the slope-wise pull is within `grip` of the pull pressing
+    // the ball into the surface: |g_tangential| <= grip * |g_normal|. Squared
+    // so no sqrt is needed, and `gn < 0` restricts it to contacts that
+    // actually *support* the ball — a wall (gn == 0) or an overhang (gn > 0)
+    // never holds one, and a gravity-free top-down hole takes this branch
+    // never, staying bit-identical to before static friction existed.
+    if (m.grip !== undefined) {
+      const gn = g[0] * nx + g[1] * ny;
+      if (gn < 0) {
+        const sp2 = b.vx * b.vx + b.vy * b.vy;
+        if (sp2 < STATIC_SPEED * STATIC_SPEED) {
+          const gtx = g[0] - gn * nx;
+          const gty = g[1] - gn * ny;
+          if (gtx * gtx + gty * gty <= m.grip * m.grip * gn * gn) {
+            b.vx = 0;
+            b.vy = 0;
+          }
+        }
+      }
+    }
 
     sim.contact = true;
     sim.groundMaterial = material;
