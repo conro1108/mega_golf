@@ -14,6 +14,14 @@ export interface Material {
   /** Per-second tangential velocity decay while in wall/edge contact. */
   friction: number;
   /**
+   * Fraction of tangential speed *kept* across a real impact (one whose
+   * approach speed clears IMPACT_SPEED in sim.ts). Per-second friction can't
+   * scrub a bounce — contact lasts a substep or two — so without this a
+   * landing kept nearly all its horizontal speed and skipped on forever.
+   * Defaults to 1 (no scrub): a bumper should return the ball, not grab it.
+   */
+  bounceGrip?: number;
+  /**
    * Per-second velocity decay while this material is a top-down *floor*
    * (see `step()` in sim.ts). Defaults to `friction` if unset.
    *
@@ -30,14 +38,20 @@ export interface Material {
 }
 
 export const MATERIALS: Record<MaterialId, Material> = {
-  green: { restitution: 0.42, friction: 4.6, rollingFriction: 1.4 },
+  // Green restitution is deliberately low. At 0.42 a full launch landed, then
+  // bounced six times and skittered ~360 units — most of two pockets' worth —
+  // so where a shot *pitched* had almost nothing to do with where it finished,
+  // and the arc (the thing the whole side course is about) wasn't what was
+  // being judged. At 0.25 a landing takes one modest hop and dies close to
+  // where it came down.
+  green: { restitution: 0.25, friction: 4.2, rollingFriction: 1.75, bounceGrip: 0.72 },
   // Sand takes the ball's energy rather than returning any of it: a shot that
   // arrives in a bunker should stop where it pitches, not skip or trickle on.
-  // `rollingFriction` is deliberately left where it was — that role (a
-  // top-down sand floor) always worked; it was side-view bunkers that were
-  // silently playing as green.
-  sand: { restitution: 0.02, friction: 28, rollingFriction: 11 },
-  ice: { restitution: 0.35, friction: 0.55, rollingFriction: 0.3 },
+  sand: { restitution: 0.02, friction: 28, rollingFriction: 13.5, bounceGrip: 0.25 },
+  // Ice rolling friction sets the top-down ice carry: at 0.3 a full-power shot
+  // rolled for fourteen seconds, which is not "fast and dangerous", just slow
+  // to watch. 0.72 keeps ice at ~2.4x a green carry with a watchable stop.
+  ice: { restitution: 0.3, friction: 0.55, rollingFriction: 0.72 },
   rubber: { restitution: 0.88, friction: 2.0 },
 };
 
@@ -109,13 +123,14 @@ export interface Hole {
 }
 
 /**
- * Side-view gravity. Deliberately light: the game is skee-ball, not golf, so a
- * launch should hang and arc across most of a hole rather than pitch and roll.
- * At this value a max shot lobs ~105 units high and carries ~420, which is
- * about one screen — holes are sized to one or two of those. Top-down holes
- * set their own `[0, 0]` and are unaffected.
+ * Side-view gravity. The game is skee-ball, not golf, so a launch should arc
+ * across most of a hole rather than pitch and roll — a max shot lobs ~104
+ * units high and carries ~416, about one screen, and holes are sized to one or
+ * two of those. Raised from 440 in proportion with MAX_POWER (which preserves
+ * exactly those numbers) because at 440 a full arc hung for 1.4 seconds and
+ * the game played underwater. Top-down holes set their own `[0, 0]`.
  */
-export const DEFAULT_GRAVITY: readonly [number, number] = [0, 440];
+export const DEFAULT_GRAVITY: readonly [number, number] = [0, 700];
 
 /** Ray-casting point-in-polygon test. Pure comparisons and division: exact. */
 export function pointInPolygon(px: number, py: number, points: readonly (readonly [number, number])[]): boolean {

@@ -34,8 +34,11 @@ export interface BestRun {
  *     which invalidates a recorded run just as thoroughly.
  * v4: side-view gravity lightened for skee-ball arcs, and the courses split by
  *     perspective, which rebuilt nearly every hole.
+ * v5: feel pass — faster gravity/power at the same carry, deader landings
+ *     (bounceGrip), tamed ice — plus the side course reshaped onto real
+ *     rolling ground.
  */
-const BEST_PREFIX = "megagolf:best:v4:";
+const BEST_PREFIX = "megagolf:best:v5:";
 
 /** Storage key for a hole's best run. Exported so tests can't drift from it. */
 export function bestKey(holeName: string): string {

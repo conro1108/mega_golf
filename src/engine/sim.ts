@@ -24,11 +24,14 @@ import {
 } from "./world";
 
 export const DT = 1 / 120;
-/** Side-view default. Per-hole gravity overrides this; top-down uses (0, 0). */
-export const GRAVITY = 620;
 export const BALL_RADIUS = 3;
-/** Fastest a clean lie can launch the ball; the input layer maps drag onto this. */
-export const MAX_POWER = 430;
+/**
+ * Fastest a clean lie can launch the ball; the input layer maps drag onto this.
+ * Tuned together with DEFAULT_GRAVITY (world.ts): power² / gravity fixes the
+ * carry of a max launch, so raising both in proportion keeps every hole's
+ * geometry reachable while making the flight play out faster.
+ */
+export const MAX_POWER = 540;
 export const CUP_RADIUS = 8;
 
 /**
@@ -42,6 +45,14 @@ export const SAND_POWER_SCALE = 0.85;
 export function maxPowerForLie(material: MaterialId | undefined): number {
   return material === "sand" ? MAX_POWER * SAND_POWER_SCALE : MAX_POWER;
 }
+
+/**
+ * Approach speed that separates a real impact from the grazing re-contact of
+ * a ball resting or rolling along a surface. Only a real impact pays the
+ * material's `bounceGrip` tangential scrub — a resting ball re-contacts every
+ * step, and scrubbing those would be a huge hidden rolling friction.
+ */
+const IMPACT_SPEED = 40;
 
 /** Below this speed, and in contact, the ball is a candidate for sleeping. */
 const REST_SPEED = 7;
@@ -330,6 +341,18 @@ function resolveContacts(sim: Sim, sdt: number): void {
       const j = -(1 + m.restitution) * vn;
       b.vx += nx * j;
       b.vy += ny * j;
+      // A real impact (not the grazing re-contact of a resting ball) also
+      // scrubs tangential speed — see `bounceGrip`. Without it a landing kept
+      // its whole horizontal speed and the skip-out, not the arc, decided
+      // where every shot finished.
+      if (vn < -IMPACT_SPEED && m.bounceGrip !== undefined) {
+        const gtx = -ny;
+        const gty = nx;
+        const gvt = b.vx * gtx + b.vy * gty;
+        const gdv = gvt * m.bounceGrip - gvt;
+        b.vx += gtx * gdv;
+        b.vy += gty * gdv;
+      }
     }
 
     // Tangential friction. Linear decay keeps the math IEEE-exact.

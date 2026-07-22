@@ -63,8 +63,9 @@ describe("determinism", () => {
   });
 
   it("diverges for different inputs (the test above isn't vacuous)", () => {
-    const a = simulateShot(createSim(HOLES[0]), { angle: -0.6, power: 380 });
-    const b = simulateShot(createSim(HOLES[0]), { angle: -0.6, power: 381 });
+    // Full-ish power: an undershot pair would both reset to the tee and agree.
+    const a = simulateShot(createSim(HOLES[0]), { angle: -0.6, power: 500 });
+    const b = simulateShot(createSim(HOLES[0]), { angle: -0.6, power: 501 });
     expect(b.x).not.toBe(a.x);
   });
 
@@ -163,7 +164,7 @@ describe("material patches laid over a fairway", () => {
     };
   }
 
-  const shot = { angle: -0.35, power: 400 };
+  const shot = { angle: -0.35, power: 500 };
 
   it("a sand patch on a green fairway actually stops the ball", () => {
     const plain = runToRest(flatHole("green"), shot.angle, shot.power);
