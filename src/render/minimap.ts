@@ -82,7 +82,22 @@ export function drawMinimap(
   ctx.translate(r.x, r.y);
   ctx.scale(r.scale, r.scale);
 
-  // Terrain only — at this size hazards and zones would just be noise, but the
+  // A top-down hole is floor-first: without this the map was a black box with
+  // walls floating in it.
+  if (hole.floor !== undefined) {
+    ctx.fillStyle = FILL[hole.floor];
+    ctx.fillRect(0, 0, hole.width, hole.height);
+  }
+  if (hole.zones) {
+    for (const z of hole.zones) {
+      if (z.floor === undefined) continue;
+      ctx.fillStyle = FILL[z.floor];
+      trace(ctx, z.points);
+      ctx.fill();
+    }
+  }
+
+  // Terrain silhouette — at this size hazards would just be noise, but the
   // silhouette is exactly what a player is trying to read.
   for (const t of hole.terrain) {
     ctx.fillStyle = FILL[t.material];

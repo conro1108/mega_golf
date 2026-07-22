@@ -87,7 +87,10 @@ export const SIDE_COURSE: Hole[] = [
       height: 270,
       start: [60, restY(L, 60)],
       cup: P.cup,
-      terrain: [...fairway(270, L, P, R), patch("sand", surf, 236, 386, 270), ...sides(560, 270)],
+      // Patch baselines sit just under the deepest point of their span — a
+      // lens of material under the surface, not a column to the world floor.
+      // Purely how the cross-section draws; the probe only samples 1 deep.
+      terrain: [...fairway(270, L, P, R), patch("sand", surf, 236, 386, 264), ...sides(560, 270)],
     } satisfies Hole;
   })(),
 
@@ -106,7 +109,7 @@ export const SIDE_COURSE: Hole[] = [
       height: 270,
       start: [64, restY(L, 64)],
       cup: P.cup,
-      terrain: [...fairway(270, L, P, R), patch("rubber", surf, 246, 356, 270), ...sides(560, 270)],
+      terrain: [...fairway(270, L, P, R), patch("rubber", surf, 246, 356, 258), ...sides(560, 270)],
     } satisfies Hole;
   })(),
 
@@ -128,8 +131,8 @@ export const SIDE_COURSE: Hole[] = [
       cup: P.cup,
       terrain: [
         ...fairway(270, L, P, R),
-        patch("ice", surf, 140, 428, 270),
-        patch("sand", surf, 432, 502, 270),
+        patch("ice", surf, 140, 428, 258),
+        patch("sand", surf, 432, 502, 264),
         ...sides(620, 270),
       ],
     } satisfies Hole;
@@ -228,7 +231,7 @@ export const SIDE_COURSE: Hole[] = [
       cup: [500, restY(T, 500)],
       terrain: [
         ridge("green", T, 270),
-        patch("sand", surf, 516, 548, 270),
+        patch("sand", surf, 516, 548, 232),
         { material: "rubber", points: [[160, 130], [430, 130], [430, 150], [160, 150]] },
         ...sides(560, 270),
       ],
@@ -297,9 +300,9 @@ export const SIDE_COURSE: Hole[] = [
       cup: E.cup,
       terrain: [
         ...fairway(420, R1, A, R2, B, R3, E, R4),
-        patch("sand", surf1, 160, 310, 420),
-        patch("rubber", surf1, 480, 600, 420),
-        patch("ice", surf2, 1000, 1180, 420),
+        patch("sand", surf1, 160, 310, 354),
+        patch("rubber", surf1, 480, 600, 328),
+        patch("ice", surf2, 1000, 1180, 322),
         ...sides(1800, 420),
       ],
       checkpoints: [
