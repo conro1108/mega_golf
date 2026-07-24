@@ -1,0 +1,349 @@
+/*
+ * The shell's palette is the game's palette — the same hexes the renderer
+ * fills terrain and sky with. A menu that reads as a different product from
+ * the thing it launches is the failure mode here.
+ */
+:root {
+  --ink: #0d0b14;
+  --panel: #171326;
+  --panel-2: #241f38;
+  --edge: #332c4d;
+  --gold: #f2d24b;
+  --muted: #9d94b8;
+  --dim: #5a5270;
+  --green: #63b061;
+  --green-face: #3f7d46;
+  --green-lip: #4c9455;
+  --best: #7de08a;
+  --mega: #8d2f60;
+  --mega-edge: #b8477f;
+  --side: #8fc9dd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* The shell sits over the canvas, which is the only thing that scales with the
+   viewport; UI is in CSS pixels so touch targets stay finger-sized on a phone
+   instead of shrinking with the world. */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+}
+
+/* ---------- title ---------- */
+
+.title {
+  justify-content: center;
+  gap: 14px;
+  overflow-y: auto;
+  padding-block: 18px;
+}
+
+.wordmark {
+  font-size: clamp(30px, 9vw, 52px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 rgba(11, 9, 18, 0.55);
+  margin: 0;
+}
+
+.tagline {
+  color: var(--muted);
+  font-size: 12px;
+  margin: -10px 0 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  min-width: 132px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--dim);
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-top: 3px solid var(--edge);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  color: #fff;
+  background: var(--green-face);
+  border-color: var(--green);
+  border-top-color: var(--green-lip);
+}
+
+.blurb {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0;
+  text-align: center;
+  max-width: 34ch;
+}
+
+.progress {
+  width: min(320px, 76vw);
+  text-align: center;
+}
+
+.progress > span {
+  display: block;
+  color: var(--dim);
+  font-size: 10px;
+  margin-bottom: 6px;
+}
+
+.track {
+  height: 5px;
+  background: var(--panel-2);
+}
+
+.track > div {
+  height: 100%;
+  background: var(--green);
+}
+
+.play {
+  min-width: min(320px, 76vw);
+  min-height: 52px;
+  font: inherit;
+  font-size: 19px;
+  color: #fff;
+  background: var(--green-face);
+  border: 2px solid var(--green);
+  border-top: 4px solid var(--green-lip);
+  cursor: pointer;
+}
+
+.pick {
+  color: var(--dim);
+  font-size: 11px;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: min(420px, 88vw);
+}
+
+.cell {
+  min-height: 50px;
+  padding: 6px 2px;
+  font: inherit;
+  color: #fff;
+  background: var(--panel-2);
+  border: 0;
+  border-left: 3px solid var(--edge);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.cell.played {
+  background: #2b3a3c;
+  border-left-color: var(--green);
+}
+
+.cell.mega {
+  grid-column: span 5;
+  background: var(--mega);
+  border-left-color: var(--mega-edge);
+}
+
+.cell > b {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cell > small {
+  font-size: 10px;
+  color: #7a719a;
+}
+
+.cell.played > small {
+  color: var(--best);
+}
+
+/* ---------- hud ---------- */
+
+/* The HUD floats over the play canvas; only its buttons take pointer events,
+   so a drag started anywhere else still reaches the ball. */
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.hud button {
+  pointer-events: auto;
+}
+
+.hud-top {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hole-name {
+  font-size: 12px;
+  color: #fff;
+}
+
+.strokes {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 2px 2px 0 rgba(11, 9, 18, 0.5);
+}
+
+.par {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.lens {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.lens.top {
+  color: var(--gold);
+}
+
+.lens.side {
+  color: var(--side);
+}
+
+.round {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.menu {
+  position: absolute;
+  left: 10px;
+  bottom: 12px;
+  min-height: 40px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(23, 19, 38, 0.85);
+  border: 1px solid var(--muted);
+  cursor: pointer;
+}
+
+/* The holed banner is the whole screen, because "tap anywhere for the next
+   hole" was the gesture before and shrinking it to a button would be worse. */
+.banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  color: #fff;
+  background: rgba(11, 9, 18, 0.4);
+  border: 0;
+  cursor: pointer;
+}
+
+.banner > b {
+  font-size: 36px;
+  color: var(--gold);
+  background: rgba(11, 9, 18, 0.65);
+  padding: 6px 26px;
+}
+
+.banner > span {
+  font-size: 12px;
+}
+
+.banner > em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--best);
+}
+
+/* ---------- scorecard ---------- */
+
+.scorecard {
+  justify-content: center;
+  gap: 10px;
+  background: var(--panel);
+}
+
+.scorecard h1 {
+  font-size: 26px;
+  color: var(--gold);
+  margin: 0;
+}
+
+.scorecard > p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.rows {
+  width: min(340px, 78vw);
+}
+
+.rows > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 6px 0;
+}
+
+.rows > div > span:first-child {
+  color: var(--muted);
+}
+
+.rows .pending {
+  color: var(--dim);
+}
+
+.rows .total {
+  border-top: 1px solid #3a3252;
+  margin-top: 10px;
+  padding-top: 12px;
+  font-size: 19px;
+  color: var(--gold);
+}

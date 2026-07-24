@@ -8,13 +8,22 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "golden:update": "UPDATE_GOLDEN=1 vitest run golden"
+    "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/matter-js": "^0.20.2",
     "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0",
+    "poly-decomp": "^0.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

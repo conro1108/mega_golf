@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { minimapRect, minimapHitTest, minimapOccluded, needsOverview, overviewZoom } from "./minimap";
-import { createSim } from "../engine/sim";
+import { createGame, placeBall } from "../engine/game";
 import { setViewSize, BASE_W, BASE_H, VIEW } from "./view";
 import { cameraAxis } from "./view";
 import type { Hole } from "../engine/world";
@@ -43,32 +43,29 @@ describe("minimapOccluded", () => {
   const h = hole(1400, 760);
 
   it("is true when the cup sits behind the map", () => {
-    const sim = createSim(h);
+    const game = createGame(h);
     const r = minimapRect(h);
     // Put the camera so the cup lands in the middle of the map's box.
     const camX = h.cup[0] - (r.x + r.w / 2);
     const camY = h.cup[1] - (r.y + r.h / 2);
     // Park the ball far away so the cup is what triggers it.
-    sim.ball.x = camX + 10;
-    sim.ball.y = camY + VIEW.h - 10;
-    expect(minimapOccluded(sim, camX, camY, 1)).toBe(true);
+    placeBall(game, camX + 10, camY + VIEW.h - 10);
+    expect(minimapOccluded(game, camX, camY, 1)).toBe(true);
   });
 
   it("is true when the ball sits behind the map", () => {
-    const sim = createSim(h);
+    const game = createGame(h);
     const r = minimapRect(h);
     const camX = 0;
     const camY = 0;
-    sim.ball.x = r.x + r.w / 2;
-    sim.ball.y = r.y + r.h / 2;
-    expect(minimapOccluded(sim, camX, camY, 1)).toBe(true);
+    placeBall(game, r.x + r.w / 2, r.y + r.h / 2);
+    expect(minimapOccluded(game, camX, camY, 1)).toBe(true);
   });
 
   it("is false when neither is anywhere near it", () => {
-    const sim = createSim(h);
-    sim.ball.x = 10;
-    sim.ball.y = 700;
-    expect(minimapOccluded(sim, 0, 0, 1)).toBe(false);
+    const game = createGame(h);
+    placeBall(game, 10, 700);
+    expect(minimapOccluded(game, 0, 0, 1)).toBe(false);
   });
 });
 

@@ -79,3 +79,45 @@ export function cameraAxis(ballPos: number, worldSize: number, viewSize: number)
   const hi = worldSize - viewSize + pad;
   return target < lo ? lo : target > hi ? hi : target;
 }
+
+/**
+ * Size a canvas to the available content box at the display's real resolution,
+ * update `VIEW` to match its shape, and bake the world-to-device scale into
+ * the context transform. Returns the CSS-pixels-per-world-unit factor, which
+ * is what pointer coordinates have to be divided by.
+ *
+ * Shared by the play surface and the title backdrop so both agree on what one
+ * world unit is on screen.
+ */
+export function fitCanvas(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): number {
+  // Measure the padded content box, not the window: `body` is inset by the
+  // safe-area env() values, so sizing from innerWidth/innerHeight overflows an
+  // `overflow: hidden` body and clips the canvas at both ends.
+  const style = getComputedStyle(document.body);
+  const pad = (v: string): number => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const availW = window.innerWidth - pad(style.paddingLeft) - pad(style.paddingRight);
+  const availH = window.innerHeight - pad(style.paddingTop) - pad(style.paddingBottom);
+
+  setViewSize(computeViewSize(availW, availH));
+
+  // Fill the available space rather than snapping to whole-number scales: on
+  // most phone viewports an integer-only scale leaves a third of the screen as
+  // dead black bars.
+  const scale = Math.min(availW / VIEW.w, availH / VIEW.h);
+
+  // Everything the renderer draws is vector, so there is no reason to
+  // rasterise into a tiny buffer and stretch it — that was the blurriness.
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = VIEW.w * scale;
+  const cssH = VIEW.h * scale;
+  canvas.width = Math.max(1, Math.round(cssW * dpr));
+  canvas.height = Math.max(1, Math.round(cssH * dpr));
+  canvas.style.width = `${cssW}px`;
+  canvas.style.height = `${cssH}px`;
+  ctx.setTransform(canvas.width / VIEW.w, 0, 0, canvas.height / VIEW.h, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  return scale;
+}

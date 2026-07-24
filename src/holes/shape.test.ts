@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { smooth, ridge, blob, pocket, platform, restY, SPACING, type Pt } from "./shape";
-import { BALL_RADIUS, MAX_POWER, createSim, simulateShot } from "../engine/sim";
+import { BALL_RADIUS, MAX_POWER, createGame, simulateShot } from "../engine/game";
 import type { Hole } from "../engine/world";
 
 const PROFILE: Pt[] = [
@@ -144,7 +144,7 @@ describe("pocket", () => {
 
   it("rejects a ball rolled flat along the ground, at any speed", () => {
     for (let k = 2; k <= 10; k++) {
-      const r = simulateShot(createSim(hole), { angle: 0, power: (MAX_POWER * k) / 10 });
+      const r = simulateShot(createGame(hole), { angle: 0, power: (MAX_POWER * k) / 10 });
       expect(r.state, `flat roll at power ${k}/10 should not drop in`).not.toBe("holed");
     }
   });
@@ -153,7 +153,7 @@ describe("pocket", () => {
     let holed = 0;
     for (let a = 0; a < 90; a++) {
       for (let k = 4; k <= 10; k++) {
-        const r = simulateShot(createSim(hole), {
+        const r = simulateShot(createGame(hole), {
           angle: -(a / 90) * (Math.PI / 2),
           power: (MAX_POWER * k) / 10,
         });

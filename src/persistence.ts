@@ -23,11 +23,15 @@ export interface BestRun {
 }
 
 /**
- * A recorded run is a list of shots replayed through the simulation, so it is
- * only meaningful under the physics it was recorded against. Bump the epoch
- * whenever the simulation changes (the same moment `golden.json` gets
- * regenerated) and stale bests are simply ignored rather than replaying into
- * a ghost that wanders off and never holes out.
+ * A recorded run is a list of shots replayed through the physics engine, so it
+ * is only meaningful under the physics it was recorded against. Bump the epoch
+ * whenever that changes and stale bests are simply ignored rather than
+ * replaying into a ghost that wanders off and never holes out.
+ *
+ * Note that a ghost is now an *approximate* replay: Matter.js is an iterative
+ * solver, so a recorded run reproduces closely but not to the pixel, and not
+ * necessarily identically on another machine. The epoch still matters — it is
+ * what stops a run recorded under different tuning from replaying as nonsense.
  *
  * v2: contact material resolved by region, so bunkers stopped playing as green.
  * v3: holes reshaped onto curved ground — same physics, different terrain,
@@ -39,8 +43,10 @@ export interface BestRun {
  *     rolling ground.
  * v6: static friction (`grip`), so ground steeper than 2.5 degrees can hold a
  *     ball, and the two water holes' landings reshaped from domes to dishes.
+ * v7: the hand-written solver replaced wholesale by Matter.js — new collision
+ *     response, new friction model, new everything.
  */
-const BEST_PREFIX = "megagolf:best:v6:";
+const BEST_PREFIX = "megagolf:best:v7:";
 
 /** Storage key for a hole's best run. Exported so tests can't drift from it. */
 export function bestKey(holeName: string): string {

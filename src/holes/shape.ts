@@ -1,30 +1,20 @@
 /**
  * Curve authoring for holes.
  *
- * Terrain is a polygon and the simulation walks its edges, so a "curve" here
- * is a polyline dense enough to read as one — the engine never learns a new
- * primitive, and collision, materials and determinism are untouched.
- *
- * ## Why this is arithmetic and not `Math.sin`
- *
- * These vertices ARE simulation input: a ball bounces off them, so a hole
- * whose shape came out a half-ULP different on someone else's machine replays
- * their ghost putt somewhere else. Transcendental functions are not
- * bit-identical across engines, which is exactly the hazard `src/engine/`'s
- * math restriction exists to avoid — so the spline below is a Catmull-Rom,
- * evaluated with nothing but `+ - * /` and `Math.sqrt`. Sine waves would have
- * been shorter to write and would have quietly broken cross-device replay.
+ * Terrain is a polygon and Matter builds a body from its points, so a "curve"
+ * here is a polyline dense enough to read as one — the engine never learns a
+ * new primitive, and collision and materials are untouched.
  *
  * ## Why the sampling is coarse
  *
  * Vertices are spaced around a ball diameter apart rather than every pixel.
- * Denser than that and the ball is in contact with two edges at once for most
- * of a roll, which double-applies friction and makes a smooth hill play
- * sticky. The renderer rounds corners at this scale anyway (`traceShape`), so
- * a ~14-unit chord draws as a genuine curve.
+ * Denser than that and `Bodies.fromVertices` decomposes the silhouette into
+ * far more parts than the shape needs, and the near-collinear ones are exactly
+ * where a rolling ball catches. The renderer rounds corners at this scale
+ * anyway (`traceShape`), so a ~14-unit chord draws as a genuine curve.
  */
 
-import { BALL_RADIUS } from "../engine/sim";
+import { BALL_RADIUS } from "../engine/bodies";
 import type { MaterialId, Terrain } from "../engine/world";
 
 export type Pt = readonly [number, number];

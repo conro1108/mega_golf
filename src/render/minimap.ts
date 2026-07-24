@@ -14,7 +14,7 @@
 import { VIEW } from "./view";
 import { FILL } from "./draw";
 import type { Hole } from "../engine/world";
-import type { Sim } from "../engine/sim";
+import type { Game } from "../engine/game";
 
 export interface MinimapRect {
   x: number;
@@ -53,12 +53,12 @@ const DIMMED = 0.2;
  * to sit. Rather than adding a gesture to move it, the map notices it is in
  * the way and fades until it isn't; it stays tappable throughout.
  */
-export function minimapOccluded(sim: Sim, camX: number, camY: number, zoom: number): boolean {
-  const r = minimapRect(sim.hole);
+export function minimapOccluded(game: Game, camX: number, camY: number, zoom: number): boolean {
+  const r = minimapRect(game.hole);
   const pad = 6;
   const points: [number, number][] = [
-    [sim.ball.x, sim.ball.y],
-    [sim.hole.cup[0], sim.hole.cup[1]],
+    [game.ball.position.x, game.ball.position.y],
+    [game.hole.cup[0], game.hole.cup[1]],
   ];
   for (const [wx, wy] of points) {
     const sx = (wx - camX) * zoom;
@@ -99,18 +99,18 @@ export function minimapHitTest(hole: Hole, x: number, y: number): boolean {
  */
 export function drawMinimap(
   ctx: CanvasRenderingContext2D,
-  sim: Sim,
+  game: Game,
   camX: number,
   camY: number,
   zoom: number,
   open: boolean,
 ): void {
-  const hole = sim.hole;
+  const hole = game.hole;
   if (!needsOverview(hole)) return;
   const r = minimapRect(hole);
 
   ctx.save();
-  if (minimapOccluded(sim, camX, camY, zoom)) ctx.globalAlpha = DIMMED;
+  if (minimapOccluded(game, camX, camY, zoom)) ctx.globalAlpha = DIMMED;
   ctx.fillStyle = "rgba(23, 19, 38, 0.82)";
   ctx.fillRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4);
   ctx.strokeStyle = open ? "#f2d24b" : "#5a5270";
@@ -164,7 +164,7 @@ export function drawMinimap(
   ctx.fill();
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.arc(mx(sim.ball.x), my(sim.ball.y), 1.6, 0, Math.PI * 2);
+  ctx.arc(mx(game.ball.position.x), my(game.ball.position.y), 1.6, 0, Math.PI * 2);
   ctx.fill();
 
   // The "you are here" box, clipped to the map: on an axis where the camera

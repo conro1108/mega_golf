@@ -4,7 +4,14 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createSim, simulateShot, step, maxPowerForLie, BALL_RADIUS } from "../engine/sim";
+import {
+  createGame,
+  placeBall,
+  simulateShot,
+  stepGame,
+  maxPowerForLie,
+  BALL_RADIUS,
+} from "../engine/game";
 import { pointInPolygon, type Hole } from "../engine/world";
 import { ALL_HOLES as HOLES } from "../holes";
 
@@ -35,13 +42,11 @@ function bounds(points: readonly (readonly [number, number])[]) {
 
 /** Drop a ball onto the patch and let it settle: a realistic buried lie. */
 function settleInto(hole: Hole, x: number, surfaceY: number) {
-  const sim = createSim(hole);
-  sim.ball = { x, y: surfaceY - 60, vx: 0, vy: 0 };
-  sim.safe = { x, y: surfaceY - 60 };
-  sim.state = "moving";
+  const game = createGame(hole);
+  placeBall(game, x, surfaceY - 60);
   let guard = 0;
-  while (sim.state === "moving" && guard++ < 5000) step(sim);
-  return sim;
+  while (game.state === "moving" && guard++ < 5000) stepGame(game);
+  return game;
 }
 
 /**
@@ -56,29 +61,27 @@ describe("every hole", () => {
 
   /** Put a ball somewhere and let physics finish with it. */
   function release(hole: Hole, x: number, y: number, steps = 6000) {
-    const sim = createSim(hole);
-    sim.ball = { x, y, vx: 0, vy: 0 };
-    sim.safe = { x, y };
-    sim.state = "moving";
+    const game = createGame(hole);
+    placeBall(game, x, y);
     let guard = 0;
-    while (sim.state === "moving" && guard++ < steps) step(sim);
-    return sim;
+    while (game.state === "moving" && guard++ < steps) stepGame(game);
+    return game;
   }
 
   it.each(cases)("%s: the cup sits at rest height on real ground", (_name, hole) => {
     // A ball placed exactly on the cup coordinate is a ball at rest in the
     // cup — that's what the coordinate means (see draw.ts `mouthY`).
-    const sim = release(hole, hole.cup[0], hole.cup[1], 600);
-    expect(sim.state).toBe("holed");
+    const game = release(hole, hole.cup[0], hole.cup[1], 600);
+    expect(game.state).toBe("holed");
   });
 
   it.each(cases)("%s: the tee is a lie you can play from", (_name, hole) => {
     // No penalty before the player has even swung, it has to settle (a tee
     // that trickles forever is a hole you can never take a shot on), and it
     // must not simply fall in — High Dive's cup was briefly right below it.
-    const sim = release(hole, hole.start[0], hole.start[1]);
-    expect(sim.strokes).toBe(0);
-    expect(sim.state).toBe("resting");
+    const game = release(hole, hole.start[0], hole.start[1]);
+    expect(game.strokes).toBe(0);
+    expect(game.state).toBe("resting");
   });
 
   it.each(cases.filter(([, h]) => h.floor === undefined))(
@@ -93,8 +96,8 @@ describe("every hole", () => {
       let held = 0;
       const columns = 24;
       for (let i = 0; i < columns; i++) {
-        const sim = release(hole, ((i + 0.5) * hole.width) / columns, 2);
-        if (sim.state === "resting" && sim.strokes === 0) held += 1;
+        const game = release(hole, ((i + 0.5) * hole.width) / columns, 2);
+        if (game.state === "resting" && game.strokes === 0) held += 1;
       }
       expect(held).toBeGreaterThanOrEqual(4);
     },
@@ -137,17 +140,15 @@ describe("islands between hazards", () => {
 
   /**
    * Drop a ball straight down this column and run it to a stop. Returning the
-   * sim rather than a verdict keeps the caller's `state` comparison outside
+   * game rather than a verdict keeps the caller's `state` comparison outside
    * the narrowing introduced by assigning `state` here.
    */
   function dropColumn(hole: Hole, x: number) {
-    const sim = createSim(hole);
-    sim.ball = { x, y: 2, vx: 0, vy: 0 };
-    sim.safe = { x, y: 2 };
-    sim.state = "moving";
+    const game = createGame(hole);
+    placeBall(game, x, 2);
     let guard = 0;
-    while (sim.state === "moving" && guard++ < 8000) step(sim);
-    return sim;
+    while (game.state === "moving" && guard++ < 8000) stepGame(game);
+    return game;
   }
 
   const islands: [string, Hole, number, number][] = [];
@@ -168,8 +169,8 @@ describe("islands between hazards", () => {
     // vertical speed and no forward travel. A real arc arrives kinder.
     let held = 0;
     for (let x = from + BALL_RADIUS; x <= to - BALL_RADIUS; x += 4) {
-      const sim = dropColumn(hole, x);
-      if (sim.state === "resting" && sim.strokes === 0) held += 1;
+      const game = dropColumn(hole, x);
+      if (game.state === "resting" && game.strokes === 0) held += 1;
     }
     expect(held, `nowhere between x=${from} and x=${to} holds a ball`).toBeGreaterThanOrEqual(3);
   });
@@ -205,9 +206,9 @@ describe("bunkers", () => {
         let freed = false;
         for (let a = 0; a < 120 && !freed; a++) {
           for (let k = 1; k <= 8 && !freed; k++) {
-            const trial = createSim(bunker.hole);
-            trial.ball = { ...settled.ball };
-            trial.safe = { ...settled.safe };
+            const trial = createGame(bunker.hole);
+            placeBall(trial, settled.ball.position.x, settled.ball.position.y);
+            trial.state = "resting";
             const r = simulateShot(trial, {
               angle: -Math.PI + (a / 120) * Math.PI * 2,
               power: (power * k) / 8,

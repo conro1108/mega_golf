@@ -97,25 +97,28 @@ drive into a cup sitting on the deck.
 ### Engine implication
 
 **One simulation, not two.** Gravity becomes a per-hole vector: side-view is
-`(0, +g)`, top-down is `(0, 0)` plus a global surface friction applied every
-step (the ball is always in contact with the floor). Collision, materials,
-resting, scoring, determinism, and ghost putts are all unchanged and shared.
+`(0, +g)`, top-down is `(0, 0)` plus a floor material whose rolling friction is
+applied to the ball every step (the ball is always in contact with the floor).
+Collision, materials, resting, scoring and ghost putts are all shared. The two
+perspectives even share the *stopping* mechanism: rolling friction is applied
+while the ball is in contact with anything, so side-view gets it on the ground
+and loses it in the air, and top-down simply never loses it.
 
 Resist forking the engine per perspective — the moment there are two
-simulations there are two sets of determinism guarantees, and the golden
-fixture stops meaning anything.
+simulations there are two sets of physics to tune and two sets of bugs.
 
 ## Physics
 
-- 2D rigid ball vs. static terrain: gravity (per-hole, see above),
-  restitution, rolling friction. Keep it simple and **deterministic** (fixed
-  timestep) from day one — ghost putts (below) require that a recorded input
-  replays identically.
+- **Matter.js**, used natively, at a fixed 120Hz tick. 2D rigid ball vs. static
+  terrain: gravity (per-hole, see above), restitution, rolling friction. Hole
+  polygons *are* the collision geometry — there is no separate collision layer
+  to keep in sync.
 - Surfaces as materials: green (normal), sand (kills momentum), ice (no
   friction), rubber (bouncy), water/void (stroke penalty + reset to last
   rest position).
 - A few dynamic elements for late holes: moving platforms, fans, one-way
-  gates. Each must be time-deterministic (position = f(hole_time)).
+  gates. Drive each from `game.steps` (position = f(hole_time)) rather than
+  wall-clock, so they behave the same in a headless test as on screen.
 
 ## Hole design principles
 
@@ -159,10 +162,18 @@ scorecard rivalry to concentrate.
 
 - **Scorecards**: per-course leaderboards among friends; a daily featured
   course everyone plays on the same holes.
-- **Ghost putts**: because physics is deterministic, a shot is just
-  (hole_id, aim vector, power, timestamp offset). Replay friends' shots as
-  translucent ghost balls on your screen — near-zero storage, high social
-  value. Record inputs from day one even before any online exists.
+- **Ghost putts**: a shot is just (hole_id, aim vector, power, timestamp
+  offset). Replay friends' shots as translucent ghost balls on your screen —
+  near-zero storage, high social value. Record inputs from day one even before
+  any online exists.
+
+  The replay is *approximate*. An earlier build ran a hand-written solver
+  restricted to IEEE-exact arithmetic so a recorded shot landed on the same
+  pixel on every machine; moving to Matter.js traded that for a far better
+  simulation. A ghost now reproduces a run closely rather than exactly, which
+  is fine for the thing ghosts are actually for — watching a friend's line —
+  but it does mean a ghost is not evidence of a score. Scores are the
+  scorecard's job, and the scorecard records numbers, not replays.
 
 ## Open questions
 

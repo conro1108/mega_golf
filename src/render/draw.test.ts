@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { holedBallSprite } from "./draw";
-import { createSim, BALL_RADIUS } from "../engine/sim";
+import { createGame, placeBall, BALL_RADIUS } from "../engine/game";
 import { ALL_HOLES as HOLES } from "../holes";
 
 /**
@@ -13,18 +13,17 @@ describe("holedBallSprite", () => {
   const [cx, cy] = hole.cup;
 
   function heldOnRim() {
-    const sim = createSim(hole);
+    const game = createGame(hole);
     // Caught on the rim, off-centre and above the surface, as capture leaves it.
-    sim.ball.x = cx - 6;
-    sim.ball.y = cy;
-    sim.state = "holed";
-    return sim;
+    placeBall(game, cx - 6, cy);
+    game.state = "holed";
+    return game;
   }
 
-  it("leaves a ball that is not holed exactly where the sim put it", () => {
-    const sim = heldOnRim();
-    const s = holedBallSprite(sim, cx, cy, false, 0);
-    expect(s).toEqual({ x: sim.ball.x, y: sim.ball.y, r: BALL_RADIUS });
+  it("leaves a ball that is not holed exactly where physics put it", () => {
+    const game = heldOnRim();
+    const s = holedBallSprite(game, cx, cy, false, 0);
+    expect(s).toEqual({ x: game.ball.position.x, y: game.ball.position.y, r: BALL_RADIUS });
   });
 
   it("ends centred on the cup and below the lip", () => {
@@ -37,11 +36,12 @@ describe("holedBallSprite", () => {
   });
 
   it("centres faster than it falls", () => {
-    const sim = heldOnRim();
-    const mid = holedBallSprite(sim, cx, cy, false, 0.4);
-    const end = holedBallSprite(sim, cx, cy, false, 1);
-    const acrossDone = (mid.x - sim.ball.x) / (end.x - sim.ball.x);
-    const downDone = (mid.y - sim.ball.y) / (end.y - sim.ball.y);
+    const game = heldOnRim();
+    const mid = holedBallSprite(game, cx, cy, false, 0.4);
+    const end = holedBallSprite(game, cx, cy, false, 1);
+    const b = game.ball.position;
+    const acrossDone = (mid.x - b.x) / (end.x - b.x);
+    const downDone = (mid.y - b.y) / (end.y - b.y);
     expect(acrossDone).toBeGreaterThan(downDone);
     expect(downDone).toBeGreaterThan(0);
   });
