@@ -95,21 +95,31 @@ export const SIDE_COURSE: Hole[] = [
   })(),
 
   (() => {
-    // The valley floor is a rubber trampoline: drop a lob onto it and the dell's
-    // own curve flings the ball on toward the pocket. Or carry everything.
-    const L: Pt[] = [[0, 204], [80, 198], [150, 208], [220, 232], [300, 242], [360, 236], [414, 188]];
-    const P = pocket(460, 188, 270, { mouth: 48, lip: 13, half: 46 });
-    const R: Pt[] = [[506, 188], [536, 194], [560, 196]];
+    // A rubber trampoline sunk in a hollow, and a pocket set 512 units off the
+    // tee — past the 416 a max launch can carry (v^2/g), so no ballistic arc
+    // reaches it. The greedy line is a *sling*: drop into the hollow at the one
+    // speed-and-angle window and the trampoline flings you the rest of the way
+    // in, one shot. Undershoot and you're stuck bouncing in the bowl; overshoot
+    // and you fly the cup into the pond past it. The safe line ignores all that
+    // — lob onto the shoulder short of the pocket, then pitch in: two calm hops.
+    const L: Pt[] = [
+      [0, 188], [86, 194], [162, 220], [242, 262], [312, 280],
+      [382, 262], [452, 224], [512, 208],
+    ];
+    const P = pocket(558, 208, 320, { mouth: 46, lip: 13, half: 46 });
+    const R: Pt[] = [[604, 208], [648, 236], [700, 236]];
     const surf = smooth(L);
     return {
-      name: "Launch Pad",
-      idea: "Drop onto the rubber and let the valley fling you across — or carry the whole thing if you dare.",
+      name: "The Sling",
+      idea: "Drop the trampoline hollow's one window and it slings you the whole way in — or lay up over it and pitch across.",
       par: 3,
-      width: 560,
-      height: 270,
-      start: [64, restY(L, 64)],
+      width: 700,
+      height: 320,
+      start: [46, restY(L, 46)],
       cup: P.cup,
-      terrain: [...fairway(270, L, P, R), patch("rubber", surf, 246, 356, 258), ...sides(560, 270)],
+      terrain: [...fairway(320, L, P, R), patch("rubber", surf, 242, 382, 268), ...sides(700, 320)],
+      // A pond just past the pocket: too much sling and you fly the cup, wet.
+      hazards: [{ points: blob([[652, 250], [700, 250], [700, 320], [652, 320]]) }],
     } satisfies Hole;
   })(),
 

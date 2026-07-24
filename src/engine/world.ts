@@ -52,13 +52,24 @@ export interface Material {
 }
 
 export const MATERIALS: Record<MaterialId, Material> = {
-  // Green restitution is deliberately low. At 0.42 a full launch landed, then
-  // bounced six times and skittered ~360 units — most of two pockets' worth —
-  // so where a shot *pitched* had almost nothing to do with where it finished,
-  // and the arc (the thing the whole side course is about) wasn't what was
-  // being judged. At 0.25 a landing takes one modest hop and dies close to
-  // where it came down.
-  green: { restitution: 0.25, friction: 4.2, rollingFriction: 1.75, bounceGrip: 0.72, grip: 0.36 },
+  // Two of these numbers steer side-view; one steers top-down, and they don't
+  // cross. `friction` fires on edge contact — every side-view roll and bounce;
+  // `rollingFriction` fires only under a top-down floor (sim.ts). Green is
+  // never a terrain *edge* in a top-down room (the walls are rubber, green is
+  // just the floor), so tuning `friction`/`restitution`/`bounceGrip` is a
+  // side-view-only lever and `rollingFriction` a top-down-only one.
+  //
+  // Side-view used to play like mud: `friction` 4.2 killed a roll so fast that
+  // the ground's *shape* never got to steer the ball — you dialed power and
+  // watched it trundle to a stop. 3.0 lets a landing carry and a slope redirect,
+  // so reading angles and banks starts to matter, which is the point. Bounce
+  // stays modest (0.3, up from 0.25) — enough to feel alive without the ~360-unit
+  // skitter that 0.42 gave, which would drown the drop-in pockets. bounceGrip up
+  // to 0.8 so a bank returns the ball's line instead of grabbing it. `grip`
+  // (static) unchanged, so slopes still hold a settled ball. `rollingFriction`
+  // held at 1.75: it sizes every top-down green hole's carry, and those holes
+  // are tuned to it — dropping it would silently overshoot all of them.
+  green: { restitution: 0.3, friction: 3.0, rollingFriction: 1.75, bounceGrip: 0.8, grip: 0.36 },
   // Sand takes the ball's energy rather than returning any of it: a shot that
   // arrives in a bunker should stop where it pitches, not skip or trickle on.
   // It grips hardest of anything — a plugged lie stays put on a real slope.

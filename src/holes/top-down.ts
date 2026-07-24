@@ -165,20 +165,29 @@ export const TOP_DOWN_COURSE: Hole[] = [
     ],
   },
   {
-    name: "The Maze",
-    idea: "No physics trick here, just the layout — read the whole maze before you commit to a bank.",
-    par: 6,
-    width: 340,
-    height: 340,
+    name: "Backboard",
+    idea: "A concave backboard wraps the cup: fire hard past the pond and the curve brings you back in.",
+    par: 3,
+    width: 480,
+    height: 320,
     gravity: [0, 0],
     floor: "green",
-    start: [40, 40],
-    cup: [300, 300],
+    // Tee to cup is ~268 against a ~303 max carry: the ace is real but it has
+    // to be nearly full power, which is exactly what makes the pond scary.
+    start: [90, 220],
+    cup: [330, 100],
     terrain: [
-      ...room(340, 340),
-      { material: "rubber", points: [[8, 110], [230, 110], [230, 126], [8, 126]] },
-      { material: "rubber", points: [[110, 210], [332, 210], [332, 226], [110, 226]] },
+      ...room(480, 320),
+      // The backboard: a concave arc wrapped behind the cup, mouth toward the
+      // tee. A hot approach that misses the cup hits the curve and is returned
+      // through the cup region, slower — the geometry forgives the angle
+      // while the power stays on the player.
+      { material: "rubber", points: thickCurve([[292, 52], [336, 40], [378, 62], [394, 106], [376, 146]], 7) },
     ],
+    // A pond just under the direct line: the brave shot skims its top edge,
+    // and the short miss — the tempting under-hit — gets wet. The safe route
+    // swings below it and stages in the open floor right of the pond.
+    hazards: [{ points: blob([[152, 196], [232, 184], [262, 232], [216, 276], [148, 260]]) }],
   },
   {
     name: "The Grand Maze",
